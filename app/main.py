@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, status
+from fastapi import FastAPI, Request, HTTPException, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import time
@@ -10,6 +10,7 @@ from app.api import auth, users, admin
 from app.services.usage import UsageService
 from app.core.rate_limit import rate_limiter
 from app.core.config import settings
+from app.api.auth import get_current_active_user
 
 
 @asynccontextmanager
@@ -59,45 +60,12 @@ async def usage_tracking_middleware(request: Request, call_next):
     """Middleware to track API usage and enforce rate limits"""
     start_time = time.time()
     
-    # Get user from token if present
-    user = None
-    if "authorization" in request.headers:
-        try:
-            from app.api.auth import get_current_user
-            token = request.headers["authorization"].split(" ")[1]
-            db = next(get_db())
-            user = get_current_user(token, db)
-        except:
-            pass
-    
-    # Check rate limits if user is authenticated
-    if user:
-        try:
-            rate_limiter.check_rate_limit(user.id, next(get_db()))
-        except HTTPException as e:
-            return e
-    
     # Process request
     response = await call_next(request)
     
     # Calculate response time
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
-    
-    # Log usage if user is authenticated
-    if user and user:
-        db = next(get_db())
-        try:
-            usage_service = UsageService(db)
-            usage_service.log_usage(
-                user_id=user.id,
-                endpoint=request.url.path,
-                method=request.method,
-                status_code=response.status_code,
-                response_time_ms=process_time * 1000
-            )
-        finally:
-            db.close()
     
     return response
 
@@ -123,6 +91,6 @@ async def health_check():
 
 
 @app.get("/protected")
-async def protected_endpoint():
+async def protected_endpoint(current_user: User = Depends(get_current_active_user)):
     """Example of a protected endpoint"""
     return {"message": "This is a protected endpoint"}
