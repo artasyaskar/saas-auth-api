@@ -6,7 +6,7 @@ import {
   User, 
   Shield, 
   BarChart3, 
-  Settings,
+  Settings as SettingsIcon,
   X
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
@@ -35,6 +35,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       name: 'Analytics',
       path: '/analytics',
       icon: BarChart3,
+    },
+    {
+      name: 'Settings',
+      path: '/settings',
+      icon: SettingsIcon,
     },
   ]
 

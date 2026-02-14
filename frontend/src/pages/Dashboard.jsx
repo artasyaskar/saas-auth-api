@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { 
   Users, 
   Activity, 
@@ -13,12 +14,36 @@ import { useAuthStore } from '../store/authStore'
 
 const Dashboard = () => {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalRequests: 0,
     avgResponseTime: 0,
     activeUsers: 0,
     uptime: '99.9%'
   })
+
+  const handleQuickAction = (action) => {
+    switch(action) {
+      case 'security':
+        navigate('/security')
+        break
+      case 'users':
+        if (user?.role === 'ADMIN') {
+          navigate('/admin')
+        } else {
+          navigate('/profile')
+        }
+        break
+      case 'analytics':
+        navigate('/analytics')
+        break
+      case 'docs':
+        window.open('http://localhost:8002/docs', '_blank')
+        break
+      default:
+        break
+    }
+  }
 
   const statCards = [
     {
@@ -140,22 +165,34 @@ const Dashboard = () => {
             </h2>
             
             <div className="space-y-3">
-              <button className="w-full btn-secondary text-left justify-start">
+              <button 
+                onClick={() => handleQuickAction('security')}
+                className="w-full btn-secondary text-left justify-start hover:scale-105 transition-transform"
+              >
                 <Shield className="w-4 h-4 mr-3" />
                 Security Settings
               </button>
               
-              <button className="w-full btn-secondary text-left justify-start">
+              <button 
+                onClick={() => handleQuickAction('users')}
+                className="w-full btn-secondary text-left justify-start hover:scale-105 transition-transform"
+              >
                 <Users className="w-4 h-4 mr-3" />
-                User Management
+                {user?.role === 'ADMIN' ? 'User Management' : 'Profile Settings'}
               </button>
               
-              <button className="w-full btn-secondary text-left justify-start">
+              <button 
+                onClick={() => handleQuickAction('analytics')}
+                className="w-full btn-secondary text-left justify-start hover:scale-105 transition-transform"
+              >
                 <BarChart3 className="w-4 h-4 mr-3" />
                 View Analytics
               </button>
               
-              <button className="w-full btn-secondary text-left justify-start">
+              <button 
+                onClick={() => handleQuickAction('docs')}
+                className="w-full btn-secondary text-left justify-start hover:scale-105 transition-transform"
+              >
                 <Zap className="w-4 h-4 mr-3" />
                 API Documentation
               </button>

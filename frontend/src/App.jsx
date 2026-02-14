@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './store/authStore'
+import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
 import Login from './pages/Login'
@@ -11,6 +12,7 @@ import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import Security from './pages/Security'
 import Analytics from './pages/Analytics'
+import AppSettings from './pages/Settings'
 import Admin from './pages/Admin'
 
 const ProtectedRoute = ({ children }) => {
@@ -44,142 +46,164 @@ function App() {
   }, [checkAuth])
 
   return (
-    <div className="min-h-screen bg-dark">
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#1a1a1a',
-            color: '#ffffff',
-            border: '1px solid #404040',
-            borderRadius: '8px',
-            fontSize: '14px',
-          },
-          success: {
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#ffffff',
+    <ErrorBoundary>
+      <div className="min-h-screen bg-dark">
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#1a1a1a',
+              color: '#ffffff',
+              border: '1px solid #404040',
+              borderRadius: '8px',
+              fontSize: '14px',
             },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#ffffff',
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#ffffff',
+              },
             },
-          },
-        }}
-      />
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#ffffff',
+              },
+            },
+          }}
+        />
 
-      <AnimatePresence mode="wait">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <div className="flex">
-                <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                <div className="flex-1">
-                  <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                  <motion.div
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                  >
-                    <Dashboard />
-                  </motion.div>
+        <AnimatePresence mode="wait">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <div className="flex">
+                  <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                  <div className="flex-1">
+                    <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                    <motion.div
+                      initial="initial"
+                      animate="in"
+                      exit="out"
+                      variants={pageVariants}
+                      transition={pageTransition}
+                    >
+                      <Dashboard />
+                    </motion.div>
+                  </div>
                 </div>
-              </div>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <div className="flex">
-                <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                <div className="flex-1">
-                  <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                  <motion.div
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                  >
-                    <Profile />
-                  </motion.div>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <div className="flex">
+                  <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                  <div className="flex-1">
+                    <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                    <motion.div
+                      initial="initial"
+                      animate="in"
+                      exit="out"
+                      variants={pageVariants}
+                      transition={pageTransition}
+                    >
+                      <Profile />
+                    </motion.div>
+                  </div>
                 </div>
-              </div>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/security" element={
-            <ProtectedRoute>
-              <div className="flex">
-                <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                <div className="flex-1">
-                  <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                  <motion.div
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                  >
-                    <Security />
-                  </motion.div>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/security" element={
+              <ProtectedRoute>
+                <div className="flex">
+                  <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                  <div className="flex-1">
+                    <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                    <motion.div
+                      initial="initial"
+                      animate="in"
+                      exit="out"
+                      variants={pageVariants}
+                      transition={pageTransition}
+                    >
+                      <Security />
+                    </motion.div>
+                  </div>
                 </div>
-              </div>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/analytics" element={
-            <ProtectedRoute>
-              <div className="flex">
-                <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                <div className="flex-1">
-                  <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                  <motion.div
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                  >
-                    <Analytics />
-                  </motion.div>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <div className="flex">
+                  <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                  <div className="flex-1">
+                    <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                    <motion.div
+                      initial="initial"
+                      animate="in"
+                      exit="out"
+                      variants={pageVariants}
+                      transition={pageTransition}
+                    >
+                      <Analytics />
+                    </motion.div>
+                  </div>
                 </div>
-              </div>
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/admin" element={
-            <AdminRoute>
-              <div className="flex">
-                <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                <div className="flex-1">
-                  <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-                  <motion.div
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                  >
-                    <Admin />
-                  </motion.div>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <div className="flex">
+                  <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                  <div className="flex-1">
+                    <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                    <motion.div
+                      initial="initial"
+                      animate="in"
+                      exit="out"
+                      variants={pageVariants}
+                      transition={pageTransition}
+                    >
+                      <AppSettings />
+                    </motion.div>
+                  </div>
                 </div>
-              </div>
-            </AdminRoute>
-          } />
-          
-          <Route path="/" element={<Navigate to="/dashboard" />} />
-        </Routes>
-      </AnimatePresence>
-    </div>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/admin" element={
+              <AdminRoute>
+                <div className="flex">
+                  <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                  <div className="flex-1">
+                    <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                    <motion.div
+                      initial="initial"
+                      animate="in"
+                      exit="out"
+                      variants={pageVariants}
+                      transition={pageTransition}
+                    >
+                      <Admin />
+                    </motion.div>
+                  </div>
+                </div>
+              </AdminRoute>
+            } />
+            
+            <Route path="/" element={<Navigate to="/dashboard" />} />
+          </Routes>
+        </AnimatePresence>
+      </div>
+    </ErrorBoundary>
   )
 }
 
