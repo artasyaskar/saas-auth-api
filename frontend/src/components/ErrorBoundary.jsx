@@ -1,4 +1,5 @@
 import React from 'react'
+import { motion } from 'framer-motion'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 
 class ErrorBoundary extends React.Component {

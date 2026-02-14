@@ -56,4 +56,4 @@ const useRealTimeData = () => {
   return realTimeStats
 }
 
-export default useRealTimeData
+export { useRealTimeData }
