@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-dark-200/20;
+  }
+  
+  body {
+    @apply bg-dark text-dark-900 font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  .glass-morphism {
+    @apply bg-dark-50/10 backdrop-blur-md border border-dark-200/20;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent-50 to-accent-100 bg-clip-text text-transparent;
+  }
+  
+  .gradient-border {
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd, #8b5cf6);
+    background-size: 200% 200%;
+    animation: gradient 8s linear infinite;
+  }
+  
+  .neon-glow {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.3);
+  }
+  
+  .btn-primary {
+    @apply relative overflow-hidden bg-gradient-to-r from-accent-50 to-accent-100 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-accent-50/25 active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply bg-dark-100 text-dark-700 border border-dark-200 font-medium py-3 px-6 rounded-lg transition-all duration-300 hover:bg-dark-200 hover:border-dark-300 active:scale-95;
+  }
+  
+  .input-field {
+    @apply w-full bg-dark-50/50 border border-dark-200/30 rounded-lg px-4 py-3 text-dark-900 placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-accent-50/50 focus:border-accent-50 transition-all duration-300;
+  }
+  
+  .card {
+    @apply glass-morphism rounded-xl p-6 shadow-xl;
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #404040;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #525252;
+}
+
+/* Selection */
+::selection {
+  background: rgba(139, 92, 246, 0.3);
+  color: #ffffff;
+}
+
+/* Loading animation */
+.loading-spinner {
+  border: 3px solid #1a1a1a;
+  border-top: 3px solid #8b5cf6;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
