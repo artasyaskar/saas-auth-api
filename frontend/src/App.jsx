@@ -179,18 +179,6 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" />} />
         </Routes>
       </AnimatePresence>
-                >
-                  <Admin />
-                </motion.div>
-              ) : (
-                <Navigate to="/dashboard" replace />
-              )
-            } />
-            
-            <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
-          </Routes>
-        </AnimatePresence>
-      </main>
     </div>
   )
 }

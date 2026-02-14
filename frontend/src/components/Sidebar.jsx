@@ -26,6 +26,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       path: '/profile',
       icon: User,
     },
+    {
+      name: 'Security',
+      path: '/security',
+      icon: Shield,
+    },
+    {
+      name: 'Analytics',
+      path: '/analytics',
+      icon: BarChart3,
+    },
   ]
 
   if (user?.role === 'ADMIN') {
