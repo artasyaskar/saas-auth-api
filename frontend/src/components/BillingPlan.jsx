@@ -1,5 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { Check, X, Zap, Shield, Crown, Star } from 'lucide-react'
 
 const PLANS = {
@@ -64,6 +65,16 @@ const PLANS = {
 }
 
 const BillingPlan = ({ currentPlan = 'FREE', onUpgrade, onCancel }) => {
+  const navigate = useNavigate()
+
+  const handleUpgrade = (plan) => {
+    console.log('BillingPlan handleUpgrade called with:', plan) // Debug log
+    if (plan === 'ENTERPRISE') {
+      navigate('/contact-sales')
+    } else {
+      onUpgrade?.(plan)
+    }
+  }
   return (
     <div className="min-h-screen bg-dark pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <motion.div
@@ -139,10 +150,9 @@ const BillingPlan = ({ currentPlan = 'FREE', onUpgrade, onCancel }) => {
                     if (isCurrentPlan) {
                       onCancel?.()
                     } else if (planKey === 'ENTERPRISE') {
-                      // Contact sales
-                      window.open('mailto:sales@yourcompany.com?subject=Enterprise Plan Inquiry')
+                      navigate('/contact-sales')
                     } else {
-                      onUpgrade?.(planKey)
+                      handleUpgrade(planKey) // Fixed: was calling handleUpgrade(planKey) but function expects plan
                     }
                   }}
                   className={`w-full py-3 px-6 rounded-lg font-medium transition-all duration-200 ${

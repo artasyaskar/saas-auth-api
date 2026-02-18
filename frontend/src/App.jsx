@@ -14,6 +14,8 @@ import Security from './pages/Security'
 import Analytics from './pages/Analytics'
 import AppSettings from './pages/Settings'
 import BillingPlan from './components/BillingPlan'
+import UpgradePlans from './pages/UpgradePlans'
+import ContactSales from './pages/ContactSales'
 import Admin from './pages/Admin'
 
 const ProtectedRoute = ({ children }) => {
@@ -204,6 +206,18 @@ const App = () => {
                     </motion.div>
                   </div>
                 </div>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/upgrade-plans" element={
+              <ProtectedRoute>
+                <UpgradePlans />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/contact-sales" element={
+              <ProtectedRoute>
+                <ContactSales />
               </ProtectedRoute>
             } />
             
