@@ -26,24 +26,33 @@ const AdminRoute = ({ children }) => {
 }
 
 const pageVariants = {
-  initial: { opacity: 0, x: 20 },
-  in: { opacity: 1, x: 0 },
-  out: { opacity: 0, x: -20 }
+  initial: { opacity: 0, y: 20 },
+  in: { opacity: 1, y: 0 },
+  out: { opacity: 0, y: -20 }
 }
 
 const pageTransition = {
   type: 'tween',
   ease: 'anticipate',
-  duration: 0.3
+  duration: 0.5
 }
 
-function App() {
+const App = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
-  const { checkAuth } = useAuthStore()
+  const { user } = useAuthStore()
 
   useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
+    // Initialize auth state from localStorage
+    const token = localStorage.getItem('token')
+    const userData = localStorage.getItem('user')
+    
+    if (token && userData) {
+      useAuthStore.getState().setAuth({
+        token,
+        user: JSON.parse(userData)
+      })
+    }
+  }, [])
 
   return (
     <ErrorBoundary>
@@ -56,8 +65,6 @@ function App() {
               background: '#1a1a1a',
               color: '#ffffff',
               border: '1px solid #404040',
-              borderRadius: '8px',
-              fontSize: '14px',
             },
             success: {
               iconTheme: {

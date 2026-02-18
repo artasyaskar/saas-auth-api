@@ -16,13 +16,14 @@ const LoadingSpinner = ({ size = 'medium', text = 'Loading...' }) => {
         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
       />
       {text && (
-        <motion.p
+        <motion.div
           className="text-dark-400 text-sm"
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
+          animate={{ opacity: 1 }}
+          initial={{ opacity: 0.5 }}
+          transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }}
         >
           {text}
-        </motion.p>
+        </motion.div>
       )}
     </div>
   )

@@ -93,7 +93,8 @@ const ThreeDCard = ({
               change < 0 ? 'bg-error/20 text-error' : 
               'bg-warning/20 text-warning'
             }`}
-            animate={{ scale: [1, 1.1, 1] }}
+            animate={{ scale: 1.05 }}
+            whileHover={{ scale: 1.1 }}
             transition={{ duration: 2, repeat: Infinity }}
           >
             {change > 0 && <TrendingUp className="w-3 h-3" />}
@@ -103,7 +104,8 @@ const ThreeDCard = ({
         
         <motion.h3 
           className="text-2xl font-bold text-dark-200 mb-1"
-          animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
+          animate={{ scale: 1.02 }}
+          whileHover={{ scale: 1.05 }}
           transition={{ duration: 3, repeat: Infinity }}
           style={{
             backgroundSize: "200% 200%",
@@ -122,23 +124,29 @@ const ThreeDCard = ({
         {/* Animated particles */}
         {is3D && (
           <div className="absolute inset-0 pointer-events-none">
-            {[...Array(6)].map((_, i) => (
+            {[...Array(3)].map((_, i) => (
               <motion.div
                 key={i}
                 className="absolute w-1 h-1 bg-accent-50/30 rounded-full"
                 animate={{
-                  x: [0, 100, 0],
-                  y: [0, Math.random() * 100 - 50, 0],
-                  opacity: [0, 1, 0]
+                  x: 25,
+                  y: 10,
+                  opacity: 1
+                }}
+                initial={{
+                  x: 0,
+                  y: 0,
+                  opacity: 0
                 }}
                 transition={{
                   duration: 3 + i * 0.5,
                   repeat: Infinity,
+                  repeatType: "reverse",
                   delay: i * 0.2
                 }}
                 style={{
-                  left: `${20 + i * 15}%`,
-                  top: `${20 + i * 10}%`
+                  left: `${20 + i * 20}%`,
+                  top: `${20 + i * 15}%`
                 }}
               />
             ))}

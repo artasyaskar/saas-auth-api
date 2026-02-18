@@ -213,7 +213,8 @@ const Dashboard = () => {
                       <motion.div
                         className="h-2 bg-gradient-to-r from-success via-warning to-error rounded-full"
                         style={{ width: `${realTimeData.serverLoad}%` }}
-                        animate={{ width: [0, realTimeData.serverLoad + '%'] }}
+                        initial={{ width: 0 }}
+                        animate={{ width: realTimeData.serverLoad }}
                         transition={{ duration: 1 }}
                       />
                     </div>
@@ -225,7 +226,8 @@ const Dashboard = () => {
                   <span className="text-sm text-dark-400">Current Requests/sec</span>
                   <motion.span 
                     className="text-2xl font-bold gradient-text"
-                    animate={{ scale: [1, 1.1, 1] }}
+                    animate={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.1 }}
                     transition={{ duration: 2, repeat: Infinity }}
                   >
                     {realTimeData.currentRequests}
