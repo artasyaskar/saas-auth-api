@@ -13,6 +13,7 @@ import Profile from './pages/Profile'
 import Security from './pages/Security'
 import Analytics from './pages/Analytics'
 import AppSettings from './pages/Settings'
+import BillingPlan from './components/BillingPlan'
 import Admin from './pages/Admin'
 
 const ProtectedRoute = ({ children }) => {
@@ -180,6 +181,26 @@ const App = () => {
                       transition={pageTransition}
                     >
                       <AppSettings />
+                    </motion.div>
+                  </div>
+                </div>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/billing" element={
+              <ProtectedRoute>
+                <div className="flex">
+                  <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                  <div className="flex-1">
+                    <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+                    <motion.div
+                      initial="initial"
+                      animate="in"
+                      exit="out"
+                      variants={pageVariants}
+                      transition={pageTransition}
+                    >
+                      <BillingPlan />
                     </motion.div>
                   </div>
                 </div>

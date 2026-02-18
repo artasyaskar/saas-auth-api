@@ -2,12 +2,14 @@ import React from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  LayoutDashboard, 
+  Home, 
   User, 
   Shield, 
   BarChart3, 
-  Settings as SettingsIcon,
-  X
+  Settings as SettingsIcon, 
+  Users,
+  CreditCard,
+  LayoutDashboard
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
@@ -35,6 +37,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       name: 'Analytics',
       path: '/analytics',
       icon: BarChart3,
+    },
+    {
+      name: 'Billing',
+      path: '/billing',
+      icon: CreditCard,
     },
     {
       name: 'Settings',

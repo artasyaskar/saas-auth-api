@@ -36,11 +36,11 @@ const Admin = () => {
   const { user } = useAuthStore()
   
   const generateMockUsers = () => [
-    { id: 1, username: 'john_doe', email: 'john@example.com', role: 'USER', status: 'active', lastLogin: '2 min ago', requests: 1234 },
-    { id: 2, username: 'sarah_smith', email: 'sarah@example.com', role: 'ADMIN', status: 'active', lastLogin: '5 min ago', requests: 892 },
-    { id: 3, username: 'mike_wilson', email: 'mike@example.com', role: 'USER', status: 'suspended', lastLogin: '2 hours ago', requests: 567 },
-    { id: 4, username: 'alex_jones', email: 'alex@example.com', role: 'USER', status: 'active', lastLogin: '1 min ago', requests: 2341 },
-    { id: 5, username: 'emma_brown', email: 'emma@example.com', role: 'USER', status: 'active', lastLogin: '10 min ago', requests: 445 },
+    { id: 1, username: 'john_doe', email: 'john@example.com', role: 'USER', status: 'active', lastLogin: '2 min ago', requests: 1234, plan: 'PRO' },
+    { id: 2, username: 'sarah_smith', email: 'sarah@example.com', role: 'ADMIN', status: 'active', lastLogin: '5 min ago', requests: 892, plan: 'PRO' },
+    { id: 3, username: 'mike_wilson', email: 'mike@example.com', role: 'USER', status: 'suspended', lastLogin: '2 hours ago', requests: 567, plan: 'FREE' },
+    { id: 4, username: 'alex_jones', email: 'alex@example.com', role: 'USER', status: 'active', lastLogin: '1 min ago', requests: 2341, plan: 'PRO' },
+    { id: 5, username: 'emma_brown', email: 'emma@example.com', role: 'USER', status: 'active', lastLogin: '10 min ago', requests: 445, plan: 'FREE' },
   ]
 
   const generateMockStats = () => ({
@@ -323,7 +323,8 @@ const Admin = () => {
                 <thead>
                   <tr className="border-b border-dark-200/20">
                     <th className="text-left py-3 px-4 text-dark-400 font-medium">User</th>
-                    <th className="text-left py-3 px-4 text-dark-400 font-medium">Role</th>
+                    <th className="text-left py-3 px-4 text-dark-400 font-medium">Plan</th>
+                    <th className="text-left py-3 px-4 text-dark-400 font-medium">Usage</th>
                     <th className="text-left py-3 px-4 text-dark-400 font-medium">Status</th>
                     <th className="text-left py-3 px-4 text-dark-400 font-medium">Last Login</th>
                     <th className="text-left py-3 px-4 text-dark-400 font-medium">Requests</th>
@@ -347,10 +348,23 @@ const Admin = () => {
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          user.role === 'ADMIN' ? 'bg-accent-50/20 text-accent-50' : 'bg-dark-100 text-dark-400'
+                          (user.plan || 'FREE') === 'PRO' ? 'bg-yellow-50/20 text-yellow-50' : 'bg-gray-50/20 text-gray-400'
                         }`}>
-                          {user.role || 'USER'}
+                          {user.plan || 'FREE'}
                         </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 bg-dark-100 rounded-full h-2">
+                            <div 
+                              className="h-2 bg-gradient-to-r from-success via-warning to-error rounded-full"
+                              style={{ width: `${Math.min(100, ((user.requests || 0) / ((user.plan === 'PRO' ? 10000 : 1000))) * 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-dark-400">
+                            {Math.round(((user.requests || 0) / ((user.plan === 'PRO' ? 10000 : 1000))) * 100)}%
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
