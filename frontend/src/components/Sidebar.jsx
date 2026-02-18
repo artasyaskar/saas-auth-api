@@ -9,7 +9,8 @@ import {
   Settings as SettingsIcon, 
   Users,
   CreditCard,
-  LayoutDashboard
+  LayoutDashboard,
+  X
 } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
