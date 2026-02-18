@@ -109,7 +109,7 @@ const Dashboard = () => {
       <AnimatedBackground />
       
       <div className="relative z-10">
-        <div className="pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
           {/* Stunning Go Back Button */}
           <GoBackButton />
           {/* Header */}
