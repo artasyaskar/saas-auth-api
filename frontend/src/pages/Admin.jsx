@@ -46,7 +46,8 @@ import {
   Ban,
   CheckSquare,
   Sparkles,
-  Flame
+  Flame,
+  ArrowLeft
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
