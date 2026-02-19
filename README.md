@@ -64,7 +64,7 @@ saas-auth-api/
 └── README.md
 ```
 
-## 🏗 Installation & Setup
+##  Installation & Setup
 
 ### Prerequisites
 - Python 3.11+
@@ -76,7 +76,7 @@ saas-auth-api/
 
 1. **Clone and setup**
 ```bash
-git clone <repository-url>
+git clone https://github.com/artasyaskar/saas-auth-api
 cd saas-auth-api
 ```
 
@@ -180,7 +180,7 @@ PUT /admin/users/{user_id}/suspend
 Authorization: Bearer <admin_token>
 ```
 
-## 🧪 Testing
+##  Testing
 
 Run the comprehensive test suite:
 
@@ -198,7 +198,7 @@ pytest tests/test_auth.py
 pytest --cov=app tests/
 ```
 
-## 🔧 Configuration
+##  Configuration
 
 ### Environment Variables
 
@@ -218,7 +218,7 @@ pytest --cov=app tests/
 | FREE | 60 | 1,000 |
 | PRO | 300 | 10,000 |
 
-## 🚦 Rate Limiting
+##  Rate Limiting
 
 The system implements two-tier rate limiting:
 
@@ -262,7 +262,7 @@ Admins can view:
 - Most-used endpoints
 - Response time analytics
 
-## 🐳 Docker Deployment
+##  Docker Deployment
 
 ### Production Dockerfile
 Optimized multi-stage build with:
