@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './store/authStore'
@@ -17,6 +17,21 @@ import BillingPlan from './components/BillingPlan'
 import UpgradePlans from './pages/UpgradePlans'
 import ContactSales from './pages/ContactSales'
 import Admin from './pages/Admin'
+
+// Scroll page to top on every route change
+const ScrollToTop = () => {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    // Force scroll to top on route change
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    // Fallbacks for some browsers
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [pathname])
+
+  return null
+}
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuthStore()
@@ -45,6 +60,11 @@ const App = () => {
   const { user } = useAuthStore()
 
   useEffect(() => {
+    // Let the app control scroll position instead of the browser
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual'
+    }
+
     // Initialize auth state from localStorage
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
@@ -83,6 +103,9 @@ const App = () => {
             },
           }}
         />
+
+        {/* Ensure every route change starts at the top of the page */}
+        <ScrollToTop />
 
         <AnimatePresence mode="wait">
           <Routes>
