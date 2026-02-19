@@ -26,7 +26,7 @@ This is a backend service that:
 -  Blocks users when they exceed limits
 -  Provides admin dashboard APIs
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 - **Backend**: Python 3.11+, FastAPI, Pydantic
 - **Auth & Security**: JWT, bcrypt password hashing
