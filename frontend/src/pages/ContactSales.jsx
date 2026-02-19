@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { 
   Mail, 
   Phone, 
@@ -24,6 +25,7 @@ import {
 import toast from 'react-hot-toast'
 
 const ContactSales = () => {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -125,7 +127,7 @@ const ContactSales = () => {
 
   return (
     <div className="min-h-screen bg-dark">
-      <style jsx>{`
+      <style>{`
         @keyframes shimmer {
           0% {
             background-position: -200% 50%;

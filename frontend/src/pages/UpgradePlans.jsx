@@ -151,7 +151,7 @@ const UpgradePlans = () => {
 
   return (
     <div className="min-h-screen bg-dark">
-      <style jsx>{`
+      <style>{`
         @keyframes shimmer {
           0% {
             background-position: -200% 50%;
