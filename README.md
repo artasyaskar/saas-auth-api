@@ -2,7 +2,7 @@
 
 A production-ready backend service that demonstrates secure authentication, role-based access control, rate limiting, usage tracking, and billing simulation.
 
-## 🎯 Project Vision
+##  Project Vision
 
 This project answers the critical hiring question: **"Can this person build and operate a secure, paid backend system?"**
 
@@ -15,16 +15,16 @@ Most developers can build APIs that return JSON. Very few can:
 
 This proves you understand how software actually makes money.
 
-## 🚀 What This System Does
+##  What This System Does
 
 This is a backend service that:
-- ✅ Authenticates users using JWT (access + refresh tokens)
-- ✅ Enforces role-based access (USER, ADMIN)
-- ✅ Limits API calls per minute and per month
-- ✅ Tracks usage per user and endpoint
-- ✅ Simulates subscription plans (FREE vs PRO)
-- ✅ Blocks users when they exceed limits
-- ✅ Provides admin dashboard APIs
+-  Authenticates users using JWT (access + refresh tokens)
+-  Enforces role-based access (USER, ADMIN)
+-  Limits API calls per minute and per month
+-  Tracks usage per user and endpoint
+-  Simulates subscription plans (FREE vs PRO)
+-  Blocks users when they exceed limits
+-  Provides admin dashboard APIs
 
 ## 🛠 Tech Stack
 
@@ -36,7 +36,7 @@ This is a backend service that:
 - **Billing**: Stripe test mode (simulation)
 - **Infrastructure**: Docker, docker-compose
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 saas-auth-api/
@@ -106,7 +106,7 @@ uvicorn app.main:app --reload
 
 The API will be available at `http://localhost:8000`
 
-## 📚 API Documentation
+## API Documentation
 
 ### Authentication Endpoints
 
@@ -229,7 +229,7 @@ When limits are exceeded:
 - **429 Too Many Requests**: Per-minute limit exceeded
 - **403 Forbidden**: Monthly quota exceeded
 
-## 💳 Billing Simulation
+##  Billing Simulation
 
 The system simulates SaaS billing with:
 
@@ -238,7 +238,7 @@ The system simulates SaaS billing with:
 
 Stripe integration is in test mode - no real charges are made.
 
-## 🔒 Security Features
+##  Security Features
 
 - **JWT Authentication**: Access + refresh token pattern
 - **Password Hashing**: bcrypt with salt
@@ -247,7 +247,7 @@ Stripe integration is in test mode - no real charges are made.
 - **Input Validation**: Pydantic models for all inputs
 - **CORS Configurable**: Secure cross-origin requests
 
-## 📊 Usage Tracking
+##  Usage Tracking
 
 Every API call is logged with:
 - User ID
@@ -277,18 +277,8 @@ Complete stack with:
 - Redis for rate limiting
 - Persistent volumes
 
-## 🎯 What This Proves
 
-After this project, you can confidently say:
-
-✅ "I build secure backend systems"  
-✅ "I understand authentication deeply"  
-✅ "I design APIs that scale financially"  
-✅ "I think like a product engineer"
-
-This combination of technical depth and business awareness is exactly what AI startups, remote SaaS companies, and backend-heavy teams are hiring for.
-
-## 🤝 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -296,19 +286,19 @@ This combination of technical depth and business awareness is exactly what AI st
 4. Ensure all tests pass
 5. Submit a pull request
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License.
 
-## 🆘 Default Admin Account
+##  Default Admin Account
 
 For testing, a default admin account is created:
 - **Username**: `admin`
 - **Password**: `admin123`
 - **Email**: `admin@example.com`
 
-⚠️ **Change this in production!**
+ **Change this in production!**
 
 ---
 
-**Built with ❤️ to demonstrate production-ready backend engineering skills**
+**Built to demonstrate production-ready backend engineering skills**
