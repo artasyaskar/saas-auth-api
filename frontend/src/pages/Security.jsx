@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react'
-import GoBackButton from '../components/GoBackButton'
 import toast from 'react-hot-toast'
 
 const Security = () => {
@@ -99,8 +98,6 @@ const Security = () => {
   return (
     <div className="min-h-screen bg-dark">
       <div className="pt-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto relative">
-        {/* Stunning Go Back Button */}
-        <GoBackButton />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

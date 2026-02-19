@@ -1,57 +1,49 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Sparkles } from 'lucide-react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 
 const GoBackButton = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Hide on main dashboard / landing so it doesn't show on the welcome page
+  const hideOnPaths = ['/dashboard', '/']
+  const shouldHide = hideOnPaths.includes(location.pathname)
+
+  if (shouldHide) return null
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
+    <motion.button
+      initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className="absolute top-6 left-6 z-50"
+      transition={{ duration: 0.4 }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => navigate(-1)}
+      className="group relative inline-flex items-center space-x-2 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 px-3 py-1.5 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transition-all duration-300"
     >
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => navigate(-1)}
-        className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 p-4 shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 min-w-[140px]"
+      {/* Arrow Icon */}
+      <motion.span
+        animate={{ x: [0, 2, 0] }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+        className="flex items-center justify-center"
       >
-        {/* Button Content */}
-        <div className="relative flex items-center space-x-3 text-white font-bold">
-          <motion.div
-            animate={{ x: [0, 2, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </motion.div>
-          <motion.span
-            animate={{ opacity: [0.8, 1, 0.8] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent text-lg"
-          >
-            Go Back
-          </motion.span>
-          
-          {/* Floating Sparkle */}
-          <motion.div
-            animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-1 -right-1"
-          >
-            <Sparkles className="w-5 h-5 text-yellow-300" />
-          </motion.div>
-        </div>
-        
-        {/* Hover Glow Effect */}
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-400/30 via-pink-400/30 to-blue-400/30 opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300" />
-        
-        {/* Shimmer Border */}
-        <div className="absolute inset-0 rounded-xl border-2 border-purple-400/20 group-hover:border-purple-400/40 transition-all duration-300" />
-      </motion.button>
-    </motion.div>
+        <ArrowLeft className="w-4 h-4 text-white" />
+      </motion.span>
+
+      {/* Text */}
+      <motion.span
+        animate={{ opacity: [0.8, 1, 0.8] }}
+        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        className="text-xs font-semibold text-white tracking-wide whitespace-nowrap"
+      >
+        Go Back
+      </motion.span>
+
+      {/* Subtle glow on hover */}
+      <span className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-r from-purple-400/30 via-pink-400/30 to-blue-400/30 opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-300" />
+    </motion.button>
   )
 }
 

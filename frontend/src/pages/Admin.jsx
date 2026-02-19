@@ -45,7 +45,6 @@ import {
   AlertCircle,
   Ban,
   CheckSquare,
-  ArrowLeft,
   Sparkles,
   Flame
 } from 'lucide-react'

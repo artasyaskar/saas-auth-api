@@ -20,7 +20,6 @@ import { useRealTimeData } from '../hooks/useRealTimeData'
 import { useRateLimit } from '../hooks/useRateLimit'
 import ThreeDCard from '../components/ThreeDCard'
 import AnimatedBackground from '../components/AnimatedBackground'
-import GoBackButton from '../components/GoBackButton'
 import toast from 'react-hot-toast'
 
 const Dashboard = () => {
@@ -110,8 +109,6 @@ const Dashboard = () => {
       
       <div className="relative z-10">
         <div className="pt-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto relative">
-          {/* Stunning Go Back Button */}
-          <GoBackButton />
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

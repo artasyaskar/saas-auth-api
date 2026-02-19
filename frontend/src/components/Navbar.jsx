@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Menu, X, LogOut, User, Shield } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import GoBackButton from './GoBackButton'
 
 const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const navigate = useNavigate()
@@ -17,7 +18,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     <nav className="fixed top-0 left-0 right-0 z-50 glass-morphism border-b border-dark-200/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo and menu button */}
+          {/* Logo, menu button and global go back */}
           <div className="flex items-center">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -26,17 +27,22 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
             
-            <motion.div 
-              className="ml-4 flex items-center"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="w-8 h-8 bg-gradient-to-r from-accent-50 to-accent-100 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <span className="ml-2 text-xl font-bold gradient-text">SaaS Auth</span>
-            </motion.div>
+            <div className="ml-4 flex flex-col items-start space-y-1">
+              <motion.div 
+                className="flex items-center"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="w-8 h-8 bg-gradient-to-r from-accent-50 to-accent-100 rounded-lg flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+                <span className="ml-2 text-xl font-bold gradient-text">SaaS Auth</span>
+              </motion.div>
+
+              {/* Global Go Back Button, aligned under the SaaS Auth title */}
+              <GoBackButton />
+            </div>
           </div>
 
           {/* User menu */}
