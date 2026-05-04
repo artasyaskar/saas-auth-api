@@ -5,6 +5,21 @@ from sqlalchemy.sql import func
 from datetime import datetime
 import enum
 
+__all__ = [
+    "Base",
+    "User",
+    "UserRole",
+    "UsageLog",
+    "Subscription",
+    "SubscriptionPlan",
+    "RateLimit",
+    "TokenBlacklist",
+    "PasswordResetToken",
+    "EmailVerification",
+    "UserSession",
+    "AuditLog",
+]
+
 Base = declarative_base()
 
 
