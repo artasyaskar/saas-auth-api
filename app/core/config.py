@@ -98,3 +98,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Validate production settings
+if settings.is_production():
+    if settings.secret_key == "your-super-secret-key-here-change-in-production":
+        raise ValueError("SECRET_KEY must be changed in production environment")
