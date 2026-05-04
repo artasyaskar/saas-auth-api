@@ -193,14 +193,19 @@ app.include_router(password_reset.router, prefix="/auth/password", tags=["passwo
 async def root():
     return {
         "message": "SaaS Auth API",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "docs": "/docs"
     }
 
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    """Health check endpoint for monitoring."""
+    return {
+        "status": "healthy",
+        "version": settings.app_version,
+        "environment": settings.environment.value
+    }
 
 
 @app.get("/protected")
