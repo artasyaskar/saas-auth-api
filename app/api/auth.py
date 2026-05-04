@@ -55,11 +55,11 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    # Check if token is blacklisted
+    # Check if token is blacklisted (user logged out or token revoked)
     if blacklist_service.is_token_blacklisted(token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked",
+            detail="Token has been revoked. Please login again.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
