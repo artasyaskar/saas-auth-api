@@ -43,7 +43,15 @@ logger = structlog.get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan handler for startup and shutdown events."""
+    """
+    Application lifespan handler for startup and shutdown events.
+    
+    Handles:
+    - Database table creation
+    - Default admin user setup
+    - Background service initialization
+    - Graceful shutdown cleanup
+    """
     logger.info("application_startup", event="startup_begin")
     
     # Create database tables
