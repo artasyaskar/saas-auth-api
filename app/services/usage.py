@@ -5,8 +5,11 @@ from app.db.models import UsageLog, User
 
 
 class UsageService:
+    """Service for tracking and managing API usage analytics."""
+    
     def __init__(self, db: Session):
         self.db = db
+        self._cache = {}  # Simple in-memory cache for recent queries
     
     def log_usage(
         self,
