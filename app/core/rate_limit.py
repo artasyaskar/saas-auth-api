@@ -89,4 +89,6 @@ class RateLimiter:
         return True
 
 
+# BUG: Global rate limiter instance initialized too early for testing
+# This will be refactored in next commit
 rate_limiter = RateLimiter()
