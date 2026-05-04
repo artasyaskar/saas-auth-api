@@ -37,6 +37,19 @@ def create_refresh_token(data: dict) -> str:
 
 
 def verify_token(token: str, token_type: str = "access") -> dict:
+    """
+    Verify and decode JWT token.
+    
+    Args:
+        token: The JWT token to verify
+        token_type: Expected token type ("access" or "refresh")
+    
+    Returns:
+        dict: Decoded token payload
+    
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         username: str = payload.get("sub")
