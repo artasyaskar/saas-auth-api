@@ -89,6 +89,15 @@ class RateLimiter:
         return True
 
 
-# BUG: Global rate limiter instance initialized too early for testing
-# This will be refactored in next commit
-rate_limiter = RateLimiter()
+# Singleton pattern for rate limiter
+_rate_limiter_instance = None
+
+def get_rate_limiter() -> RateLimiter:
+    """Get or create rate limiter instance (lazy initialization)."""
+    global _rate_limiter_instance
+    if _rate_limiter_instance is None:
+        _rate_limiter_instance = RateLimiter()
+    return _rate_limiter_instance
+
+# Keep backward compatibility
+rate_limiter = get_rate_limiter()
