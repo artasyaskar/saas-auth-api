@@ -7,7 +7,14 @@ import redis
 import json
 from app.core.config import settings
 
-redis_client = redis.from_url(settings.redis_url) if settings.redis_url else None
+# Initialize Redis client with error handling
+try:
+    redis_client = redis.from_url(settings.redis_url) if settings.redis_url else None
+    if redis_client:
+        redis_client.ping()
+except redis.ConnectionError:
+    print("Warning: Redis connection failed, falling back to database-only rate limiting")
+    redis_client = None
 
 
 class RateLimiter:
