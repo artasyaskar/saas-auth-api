@@ -107,6 +107,10 @@ app.add_middleware(RequestIDMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(LoggingMiddleware)
 
+# Add comprehensive audit logging middleware
+from app.middleware.audit_middleware import AuditMiddleware
+app.add_middleware(AuditMiddleware)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
