@@ -207,6 +207,10 @@ app.include_router(oauth.router, prefix="/auth/oauth", tags=["oauth"])
 from app.api.routes import two_factor
 app.include_router(two_factor.router, prefix="/auth/2fa", tags=["two-factor-authentication"])
 
+# Import and include organizations routes
+from app.api.routes import organizations
+app.include_router(organizations.router, tags=["organizations"])
+
 
 @app.get("/")
 async def root():
