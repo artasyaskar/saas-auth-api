@@ -221,7 +221,7 @@ class DataExportService:
         """Export audit logs."""
         logs = self.db.query(AuditLog).filter(
             AuditLog.user_id == user_id
-        ).order_by(AuditLog.timestamp.desc()).limit(1000).all()
+        ).order_by(AuditLog.created_at.desc()).limit(1000).all()
         
         return [
             {
