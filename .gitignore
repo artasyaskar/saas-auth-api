@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-frontend/node_modules
+
 # Distribution / packaging
 .Python
 build/
@@ -28,8 +28,6 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -85,13 +83,9 @@ ipython_config.py
 .python-version
 
 # pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
 #Pipfile.lock
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+# PEP 582
 __pypackages__/
 
 # Celery stuff
@@ -103,6 +97,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
+.env.*.local
 .venv
 env/
 venv/
@@ -132,6 +128,8 @@ dmypy.json
 *.db
 *.sqlite
 *.sqlite3
+*.db-shm
+*.db-wal
 
 # Test databases
 test.db
@@ -143,6 +141,11 @@ test_simple.db
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
 
 # OS files
 .DS_Store
@@ -152,6 +155,7 @@ test_simple.db
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini
 
 # Docker
 .dockerignore
@@ -165,9 +169,128 @@ stripe.log
 # Logs
 logs/
 *.log
+*.log.*
 
 # Temporary files
 tmp/
 temp/
 *.tmp
 *.temp
+*.bak
+*.backup
+
+# Node.js / Frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+terraform.tfvars.json
+*.tfplan
+
+# Kubernetes
+*.kubeconfig
+secrets/
+
+# AWS
+.aws/
+credentials
+
+# Uploads
+uploads/
+files/
+static/media/
+static/files/
+
+# ML Models
+models/
+*.pkl
+*.h5
+*.pt
+*.pth
+*.onnx
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Ruff
+.ruff_cache/
+
+# Black
+.black_cache/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Alembic
+alembic/versions/*.pyc
+
+# Prometheus
+prometheus/data/
+
+# Grafana
+grafana/data/
+
+# Elasticsearch
+elasticsearch/data/
+
+# Celery Flower
+flower.db
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
+
+# Backup files
+*.sql.gz
+*.dump
+*.backup
+
+# Environment specific
+.env.development
+.env.staging
+.env.production
+
+# Secrets
+secrets/
+*.secrets
+secret.*
+
+# IDE specific
+.vscode/settings.json
+.idea/*.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/dictionaries
+.idea/shelf
+.idea/uiDesigner.xml
+.idea/gradle.xml
+.idea/libraries
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+
+# OS generated files
+Thumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
