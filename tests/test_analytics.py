@@ -135,23 +135,23 @@ class TestSecurityAnalytics:
 class TestAnalyticsEndpoints:
     """Tests for analytics API endpoints."""
     
-    def test_dashboard_metrics_admin_only(self, client, admin_auth_headers):
+    def test_dashboard_metrics_admin_only(self, client, admin_headers):
         """Test dashboard metrics endpoint requires admin."""
-        response = client.get("/admin/analytics/dashboard", headers=admin_auth_headers)
+        response = client.get("/admin/analytics/dashboard", headers=admin_headers)
         # May return data or 404 if endpoint not set up
         assert response.status_code in [200, 404]
     
-    def test_user_growth_endpoint(self, client, admin_auth_headers):
+    def test_user_growth_endpoint(self, client, admin_headers):
         """Test user growth analytics endpoint."""
-        response = client.get("/admin/analytics/users/growth?days=30", headers=admin_auth_headers)
+        response = client.get("/admin/analytics/users/growth?days=30", headers=admin_headers)
         assert response.status_code in [200, 404]
     
-    def test_revenue_analytics_endpoint(self, client, admin_auth_headers):
+    def test_revenue_analytics_endpoint(self, client, admin_headers):
         """Test revenue analytics endpoint."""
-        response = client.get("/admin/analytics/revenue", headers=admin_auth_headers)
+        response = client.get("/admin/analytics/revenue", headers=admin_headers)
         assert response.status_code in [200, 404]
     
-    def test_security_summary_endpoint(self, client, admin_auth_headers):
+    def test_security_summary_endpoint(self, client, admin_headers):
         """Test security summary endpoint."""
-        response = client.get("/admin/analytics/security/summary", headers=admin_auth_headers)
+        response = client.get("/admin/analytics/security/summary", headers=admin_headers)
         assert response.status_code in [200, 404]

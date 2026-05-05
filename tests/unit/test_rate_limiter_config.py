@@ -206,21 +206,17 @@ class TestRateLimiterConfigService:
     
     def test_get_effective_limits_whitelisted(self, rate_limiter_service):
         """Test effective limits for whitelisted user"""
-        rate_limiter_service.add_to_whitelist("user@example.com")
+        rate_limiter_service.add_to_whitelist("123")  # user_id as string
         
-        limits = rate_limiter_service.get_effective_limits(
-            user_id=123, identifier="user@example.com"
-        )
-        assert limits is True or limits.get("unlimited") is True
+        limits = rate_limiter_service.get_effective_limits(user_id=123)
+        assert limits.get("unlimited") is True
     
     def test_get_effective_limits_blacklisted(self, rate_limiter_service):
         """Test effective limits for blacklisted user"""
-        rate_limiter_service.add_to_blacklist("user@example.com")
+        rate_limiter_service.add_to_blacklist("123")  # user_id as string
         
-        limits = rate_limiter_service.get_effective_limits(
-            user_id=123, identifier="user@example.com"
-        )
-        assert limits is False or limits.get("blocked") is True
+        limits = rate_limiter_service.get_effective_limits(user_id=123)
+        assert limits.get("blocked") is True
     
     def test_cleanup_expired_entries(self, rate_limiter_service):
         """Test cleaning up expired entries"""
