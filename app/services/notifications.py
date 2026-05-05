@@ -56,7 +56,7 @@ class NotificationService:
     
     def __init__(self, db: Session):
         self.db = db
-        self.email_service = EmailService()
+        self.email_service = EmailService(db)
         self.task_service = BackgroundTaskService()
     
     def send_notification(

@@ -79,6 +79,7 @@ class FeatureFlagService:
         target_attributes: Optional[Dict[str, Any]] = None,
         schedule_start: Optional[datetime] = None,
         schedule_end: Optional[datetime] = None,
+        is_active: bool = True,
         created_by: Optional[int] = None
     ) -> FeatureFlag:
         """
@@ -117,7 +118,7 @@ class FeatureFlagService:
             target_attributes=target_attributes or {},
             schedule_start=schedule_start,
             schedule_end=schedule_end,
-            is_active=True,
+            is_active=is_active,
             created_at=datetime.utcnow(),
             created_by=created_by
         )

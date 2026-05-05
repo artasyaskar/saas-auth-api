@@ -284,6 +284,11 @@ class AuditLog(Base):
     failure_reason = Column(String(200), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
+    @property
+    def timestamp(self):
+        """Alias for created_at for backward compatibility."""
+        return self.created_at
+    
     # Index for efficient queries
     __table_args__ = (
         {"sqlite_autoincrement": True},
@@ -298,6 +303,7 @@ class Webhook(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     url = Column(String(500), nullable=False)
+    description = Column(Text, nullable=True)
     secret = Column(String(100), nullable=True)
     events = Column(JSON, nullable=False)  # List of event types
     headers = Column(JSON, nullable=True)
