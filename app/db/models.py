@@ -310,6 +310,7 @@ class Webhook(Base):
     retry_policy = Column(JSON, nullable=True)
     timeout = Column(Integer, default=30, nullable=False)
     status = Column(String(20), default="active", nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -508,6 +509,7 @@ class Notification(Base):
     id = Column(Integer, primary_key=True, index=True)
     notification_id = Column(String(64), nullable=False, unique=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    notification_type = Column(String(50), nullable=False)
     title = Column(String(255), nullable=False)
     body = Column(Text, nullable=False)
     channel = Column(String(20), nullable=False)
