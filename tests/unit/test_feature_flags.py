@@ -53,6 +53,8 @@ class TestFeatureFlagService:
         db_session.add = MagicMock()
         db_session.commit = MagicMock()
         db_session.refresh = MagicMock()
+        db_session.query = MagicMock()
+        db_session.query.return_value.filter.return_value.first.return_value = None
         
         flag = feature_flag_service.create_flag(
             name="new_feature",
