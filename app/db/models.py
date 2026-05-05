@@ -301,7 +301,7 @@ class Webhook(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    name = Column(String(100), nullable=False)
+    name = Column(String(100), nullable=True)
     url = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
     secret = Column(String(100), nullable=True)
