@@ -5,8 +5,14 @@ from passlib.context import CryptContext
 from fastapi import HTTPException, status
 from app.core.config import settings
 import hashlib
+import secrets
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def generate_secure_token(length: int = 32) -> str:
+    """Generate a cryptographically secure random token."""
+    return secrets.token_urlsafe(length)
 
 
 def hash_token(token: str) -> str:
