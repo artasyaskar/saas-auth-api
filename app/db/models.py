@@ -306,6 +306,7 @@ class Webhook(Base):
     description = Column(Text, nullable=True)
     secret = Column(String(100), nullable=True)
     events = Column(JSON, nullable=False)  # List of event types
+    event_types_version = Column(String(20), default="v1", nullable=True)
     headers = Column(JSON, nullable=True)
     retry_policy = Column(JSON, nullable=True)
     timeout = Column(Integer, default=30, nullable=False)
@@ -511,7 +512,7 @@ class Notification(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     notification_type = Column(String(50), nullable=False)
     title = Column(String(255), nullable=False)
-    body = Column(Text, nullable=False)
+    message = Column(Text, nullable=False)
     channel = Column(String(20), nullable=False)
     priority = Column(String(20), default="normal", nullable=False)
     data = Column(JSON, nullable=True)
