@@ -661,3 +661,83 @@ class OAuth2Service:
 def get_oauth_service(db: Session):
     """Dependency to get OAuth service."""
     return OAuth2Service(db)
+
+
+def get_oauth_config(provider: OAuthProviderType) -> OAuthConfig:
+    """Get OAuth configuration for a provider."""
+    configs = {
+        OAuthProviderType.GOOGLE: OAuthConfig(
+            provider=OAuthProviderType.GOOGLE,
+            client_id=settings.GOOGLE_CLIENT_ID or "",
+            client_secret=settings.GOOGLE_CLIENT_SECRET or "",
+            authorization_url="https://accounts.google.com/o/oauth2/v2/auth",
+            token_url="https://oauth2.googleapis.com/token",
+            user_info_url="https://openidconnect.googleapis.com/v1/userinfo",
+            scopes=["openid", "email", "profile"],
+            pkce=True
+        ),
+        OAuthProviderType.GITHUB: OAuthConfig(
+            provider=OAuthProviderType.GITHUB,
+            client_id=settings.GITHUB_CLIENT_ID or "",
+            client_secret=settings.GITHUB_CLIENT_SECRET or "",
+            authorization_url="https://github.com/login/oauth/authorize",
+            token_url="https://github.com/login/oauth/access_token",
+            user_info_url="https://api.github.com/user",
+            scopes=["user:email", "read:user"],
+            pkce=False
+        ),
+        OAuthProviderType.MICROSOFT: OAuthConfig(
+            provider=OAuthProviderType.MICROSOFT,
+            client_id=settings.MICROSOFT_CLIENT_ID or "",
+            client_secret=settings.MICROSOFT_CLIENT_SECRET or "",
+            authorization_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+            token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            user_info_url="https://graph.microsoft.com/v1.0/me",
+            scopes=["openid", "email", "profile", "User.Read"],
+            pkce=True
+        ),
+        OAuthProviderType.APPLE: OAuthConfig(
+            provider=OAuthProviderType.APPLE,
+            client_id=settings.APPLE_CLIENT_ID or "",
+            client_secret=settings.APPLE_CLIENT_SECRET or "",
+            authorization_url="https://appleid.apple.com/auth/authorize",
+            token_url="https://appleid.apple.com/auth/token",
+            user_info_url="https://appleid.apple.com/auth/keys",
+            scopes=["name", "email"],
+            pkce=True,
+            response_type="code id_token"
+        ),
+        OAuthProviderType.OKTA: OAuthConfig(
+            provider=OAuthProviderType.OKTA,
+            client_id=settings.OKTA_CLIENT_ID or "",
+            client_secret=settings.OKTA_CLIENT_SECRET or "",
+            authorization_url=f"{settings.OKTA_DOMAIN}/oauth2/default/v1/authorize",
+            token_url=f"{settings.OKTA_DOMAIN}/oauth2/default/v1/token",
+            user_info_url=f"{settings.OKTA_DOMAIN}/oauth2/default/v1/userinfo",
+            scopes=["openid", "email", "profile"],
+            pkce=True
+        ),
+    }
+    
+    return configs.get(provider, configs[OAuthProviderType.GOOGLE])
+
+
+def generate_pkce_challenge() -> tuple:
+    """Generate PKCE code verifier and challenge."""
+    verifier = secrets.token_urlsafe(32)
+    sha256_hash = hashlib.sha256(verifier.encode()).digest()
+    challenge = base64.urlsafe_b64encode(sha256_hash).decode().rstrip("=")
+    return verifier, challenge
+
+
+def verify_state_token(state: str) -> bool:
+    """Verify OAuth state token."""
+    # In production, validate against stored state in Redis/session
+    # For now, basic validation that it's a valid format
+    if not state or len(state) < 10:
+        return False
+    return True
+
+
+# Global state store (use Redis in production)
+_state_store: Dict[str, Dict[str, Any]] = {}

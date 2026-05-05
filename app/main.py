@@ -195,6 +195,10 @@ app.include_router(password_reset.router, prefix="/auth/password", tags=["passwo
 app.include_router(api_keys.router, prefix="/api-keys", tags=["api-keys"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 
+# Import and include OAuth routes
+from app.api.routes import oauth
+app.include_router(oauth.router, prefix="/auth/oauth", tags=["oauth"])
+
 
 @app.get("/")
 async def root():
