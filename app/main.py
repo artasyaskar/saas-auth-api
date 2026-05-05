@@ -9,7 +9,7 @@ import structlog
 from app.db.session import engine, get_db
 from app.db.models import Base, User, RateLimit
 from app.api import auth, users, admin
-from app.api.routes import password_reset
+from app.api.routes import password_reset, api_keys, webhooks
 from app.services.usage import UsageService
 from app.core.rate_limit import rate_limiter
 from app.core.config import settings
@@ -192,6 +192,8 @@ app.include_router(auth.router, prefix="/auth", tags=["authentication"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(password_reset.router, prefix="/auth/password", tags=["password-reset"])
+app.include_router(api_keys.router, prefix="/api-keys", tags=["api-keys"])
+app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 
 
 @app.get("/")
