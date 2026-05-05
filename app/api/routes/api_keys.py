@@ -42,6 +42,11 @@ class ApiKeyCreateResponse(BaseModel):
     message: str
 
 
+class ApiKeyUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    scopes: Optional[List[str]] = Field(None, description="Permission scopes")
+
+
 @router.post("/", response_model=ApiKeyCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_api_key(
     key_data: ApiKeyCreate,
@@ -148,8 +153,7 @@ async def get_api_key(
 @router.put("/{key_id}")
 async def update_api_key(
     key_id: int,
-    name: Optional[str] = None,
-    scopes: Optional[List[str]] = None,
+    update_data: ApiKeyUpdate,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -165,11 +169,11 @@ async def update_api_key(
             detail="API key not found"
         )
     
-    if name:
-        api_key.name = name
+    if update_data.name:
+        api_key.name = update_data.name
     
-    if scopes:
-        api_key.scopes = scopes
+    if update_data.scopes:
+        api_key.scopes = update_data.scopes
     
     api_key.updated_at = datetime.utcnow()
     db.commit()

@@ -27,7 +27,7 @@ class TestApiKeyCreation:
         assert "api_key" in data
         assert data["name"] == "Test API Key"
         assert data["scopes"] == ["read", "write"]
-        assert "api_key" in data["message"].lower()
+        assert "api key" in data["message"].lower()
         # API key should start with sk_
         assert data["api_key"].startswith("sk_")
     
