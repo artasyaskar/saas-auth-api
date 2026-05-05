@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, HttpUrl
 from typing import List, Optional
 
 from app.db.session import get_db
-from app.db.models import User
+from app.db.models import User, Webhook as WebhookSubscription
 from app.api.auth import get_current_active_user
 from app.services.webhooks import WebhookService, WebhookEventType, get_webhook_service
 
