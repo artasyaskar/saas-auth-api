@@ -93,7 +93,7 @@ class DataExportService:
         """Export user profile data."""
         return {
             "id": user.id,
-            "username": user.username if not anonymize else f"user_{user.id}",
+            "username": user.username if not anonymize else f"ANON_{user.id}",
             "email": user.email if not anonymize else f"user_{user.id}@example.com",
             "role": user.role.value if user.role else None,
             "is_active": user.is_active,
@@ -252,7 +252,8 @@ class DataExportService:
         # Write usage data as CSV
         writer.writerow(["Export Type", "Data"])
         writer.writerow(["Profile", json.dumps(data["profile"])])
-        writer.writerow(["Usage Count", len(data["usage_history"]["entries"])])
+        usage_count = len(data["usage_history"]) if isinstance(data["usage_history"], list) else 0
+        writer.writerow(["Usage Count", usage_count])
         writer.writerow(["Security Events", json.dumps(data["security_events"])])
         
         return {
