@@ -1,0 +1,399 @@
+groups:
+  - name: api_alerts
+    interval: 30s
+    rules:
+      # API Response Time Alerts
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High API latency detected"
+          description: "95th percentile latency is {{ $value }}s for the last 5 minutes"
+
+      - alert: CriticalAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2.0
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "Critical API latency detected"
+          description: "95th percentile latency is {{ $value }}s for the last 5 minutes"
+
+      # API Error Rate Alerts
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High API error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      - alert: CriticalAPIErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.15
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "Critical API error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes"
+
+      # API Request Rate Alerts
+      - alert: LowAPIRequestRate
+        expr: rate(http_requests_total[5m]) < 10
+        for: 10m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Low API request rate detected"
+          description: "Request rate is {{ $value }} requests/sec for the last 5 minutes"
+
+      - alert: UnusualSpikeInRequests
+        expr: rate(http_requests_total[5m]) > (avg(rate(http_requests_total[5m])[1h:5m]) * 3)
+        for: 2m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Unusual spike in API requests"
+          description: "Current request rate {{ $value }} is 3x higher than 1h average"
+
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # Database Connection Alerts
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database connection usage"
+          description: "{{ $value | humanizePercentage }} of max connections in use"
+
+      - alert: CriticalDatabaseConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Critical database connection usage"
+          description: "{{ $value | humanizePercentage }} of max connections in use"
+
+      # Database Query Performance
+      - alert: SlowDatabaseQueries
+        expr: rate(pg_stat_statements_total_exec_time_sum[5m]) / rate(pg_stat_statements_total_exec_time_count[5m]) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query time is {{ $value }}s"
+
+      - alert: DatabaseDeadlocks
+        expr: rate(pg_stat_database_deadlocks[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database deadlocks detected"
+          description: "{{ $value }} deadlocks per second"
+
+      # Database Replication Lag
+      - alert: HighReplicationLag
+        expr: pg_replication_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database replication lag"
+          description: "Replication lag is {{ $value }}s"
+
+  - name: redis_alerts
+    interval: 30s
+    rules:
+      # Redis Memory Alerts
+      - alert: HighRedisMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "High Redis memory usage"
+          description: "{{ $value | humanizePercentage }} of memory in use"
+
+      - alert: CriticalRedisMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Critical Redis memory usage"
+          description: "{{ $value | humanizePercentage }} of memory in use"
+
+      # Redis Connection Alerts
+      - alert: HighRedisConnections
+        expr: redis_connected_clients / redis_config_maxclients > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "High Redis connection usage"
+          description: "{{ $value | humanizePercentage }} of max connections in use"
+
+      # Redis Performance
+      - alert: SlowRedisOperations
+        expr: rate(redis_duration_seconds_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Slow Redis operations detected"
+          description: "Average operation time is {{ $value }}s"
+
+  - name: elasticsearch_alerts
+    interval: 30s
+    rules:
+      # Elasticsearch Cluster Health
+      - alert: ElasticsearchClusterNotHealthy
+        expr: elasticsearch_cluster_health_status{color!="green"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          service: elasticsearch
+        annotations:
+          summary: "Elasticsearch cluster not healthy"
+          description: "Cluster health status is {{ $labels.color }}"
+
+      - alert: ElasticsearchClusterRed
+        expr: elasticsearch_cluster_health_status{color="red"} == 1
+        for: 2m
+        labels:
+          severity: critical
+          service: elasticsearch
+        annotations:
+          summary: "Elasticsearch cluster in red state"
+          description: "Cluster health status is red"
+
+      # Elasticsearch Node Alerts
+      - alert: ElasticsearchNodeDown
+        expr: elasticsearch_cluster_health_number_of_nodes < elasticsearch_cluster_health_expected_number_of_nodes
+        for: 2m
+        labels:
+          severity: critical
+          service: elasticsearch
+        annotations:
+          summary: "Elasticsearch node down"
+          description: "Expected {{ $labels.expected_nodes }} nodes, have {{ $value }}"
+
+      # Elasticsearch JVM Memory
+      - alert: HighElasticsearchJVMHeap
+        expr: elasticsearch_jvm_memory_used_bytes / elasticsearch_jvm_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: elasticsearch
+        annotations:
+          summary: "High Elasticsearch JVM heap usage"
+          description: "{{ $value | humanizePercentage }} of heap in use"
+
+  - name: application_alerts
+    interval: 30s
+    rules:
+      # Application Uptime
+      - alert: ApplicationDown
+        expr: up{job="saas-auth-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: application
+        annotations:
+          summary: "Application is down"
+          description: "The SaaS Auth API application is not responding"
+
+      # Application Memory
+      - alert: HighApplicationMemory
+        expr: process_resident_memory_bytes / 1024 / 1024 / 1024 > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: application
+        annotations:
+          summary: "High application memory usage"
+          description: "Memory usage is {{ $value }}GB"
+
+      - alert: CriticalApplicationMemory
+        expr: process_resident_memory_bytes / 1024 / 1024 / 1024 > 4
+        for: 5m
+        labels:
+          severity: critical
+          service: application
+        annotations:
+          summary: "Critical application memory usage"
+          description: "Memory usage is {{ $value }}GB"
+
+      # Application CPU
+      - alert: HighApplicationCPU
+        expr: rate(process_cpu_seconds_total[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: application
+        annotations:
+          summary: "High application CPU usage"
+          description: "CPU usage is {{ $value | humanizePercentage }}"
+
+      # Application Goroutines
+      - alert: HighGoroutineCount
+        expr: go_goroutines > 10000
+        for: 10m
+        labels:
+          severity: warning
+          service: application
+        annotations:
+          summary: "High goroutine count"
+          description: "Goroutine count is {{ $value }}"
+
+  - name: security_alerts
+    interval: 30s
+    rules:
+      # Failed Login Attempts
+      - alert: HighFailedLoginRate
+        expr: rate(auth_failed_logins_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate of failed login attempts"
+          description: "{{ $value }} failed logins per second"
+
+      - alert: CriticalFailedLoginRate
+        expr: rate(auth_failed_logins_total[5m]) > 50
+        for: 2m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Critical rate of failed login attempts"
+          description: "{{ $value }} failed logins per second - possible brute force attack"
+
+      # Rate Limit Violations
+      - alert: HighRateLimitViolations
+        expr: rate(rate_limit_violations_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate limit violations"
+          description: "{{ $value }} violations per second"
+
+      # Suspicious Activity
+      - alert: SuspiciousActivityDetected
+        expr: rate(suspicious_activity_events_total[5m]) > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "{{ $value }} suspicious events per second"
+
+  - name: business_alerts
+    interval: 60s
+    rules:
+      # User Registration Rate
+      - alert: LowUserRegistrationRate
+        expr: rate(user_registrations_total[1h]) < 0.01
+        for: 2h
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Low user registration rate"
+          description: "User registration rate is {{ $value }} per second"
+
+      # Active Users
+      - alert: LowActiveUsers
+        expr: active_users_total < 100
+        for: 1h
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Low number of active users"
+          description: "Only {{ $value }} active users in the last hour"
+
+      # API Key Usage
+      - alert: UnusedAPIKeys
+        expr: rate(api_key_requests_total[24h]) == 0
+        for: 24h
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Unused API keys detected"
+          description: "API keys with no requests in the last 24 hours"
+
+  - name: infrastructure_alerts
+    interval: 30s
+    rules:
+      # Disk Space
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.2
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Low disk space"
+          description: "{{ $value | humanizePercentage }} disk space available"
+
+      - alert: CriticalDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Critical disk space"
+          description: "{{ $value | humanizePercentage }} disk space available"
+
+      # CPU Load
+      - alert: HighCPULoad
+        expr: (1 - avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High CPU load"
+          description: "CPU load is {{ $value | humanizePercentage }}"
+
+      # Network Traffic
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) > 100000000
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "High network traffic"
+          description: "Receiving {{ $value | humanize }}B/s"
