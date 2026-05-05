@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, case
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -138,7 +138,7 @@ async def get_usage_stats(
         User.subscription_plan,
         func.count(UsageLog.id).label('total_requests'),
         func.sum(
-            func.case(
+            case(
                 (UsageLog.timestamp >= month_start, 1),
                 else_=0
             )

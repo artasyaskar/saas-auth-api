@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.db.session import get_db
-from app.services.password_reset import PasswordResetService, get_password_reset_service
+from app.services.password_reset import PasswordResetService
 
 router = APIRouter()
 
@@ -31,12 +31,11 @@ class PasswordResetConfirm(BaseModel):
         }
 
 
-@router.post("/reset-request", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/reset-request", status_code=status.HTTP_202_ACCEPTED, response_model=dict)
 async def request_password_reset(
     request_data: PasswordResetRequest,
     request: Request,
-    db: Session = Depends(get_db),
-    reset_service: PasswordResetService = Depends(get_password_reset_service)
+    db: Session = Depends(get_db)
 ):
     """
     Request a password reset email.
@@ -46,6 +45,9 @@ async def request_password_reset(
     - Token expires in 24 hours
     """
     client_ip = request.client.host if request.client else None
+    
+    # Create password reset service
+    reset_service = PasswordResetService(db)
     
     # Request reset (always succeeds to prevent enumeration)
     reset_service.request_password_reset(
@@ -59,13 +61,13 @@ async def request_password_reset(
     }
 
 
-@router.get("/validate-token/{token}")
+@router.get("/validate-token/{token}", response_model=dict)
 async def validate_reset_token(
     token: str,
-    db: Session = Depends(get_db),
-    reset_service: PasswordResetService = Depends(get_password_reset_service)
+    db: Session = Depends(get_db)
 ):
     """Validate a password reset token without consuming it."""
+    reset_service = PasswordResetService(db)
     user = reset_service.validate_reset_token(token)
     
     if not user:
@@ -80,12 +82,11 @@ async def validate_reset_token(
     }
 
 
-@router.post("/reset")
+@router.post("/reset", response_model=dict)
 async def reset_password(
     reset_data: PasswordResetConfirm,
     request: Request,
-    db: Session = Depends(get_db),
-    reset_service: PasswordResetService = Depends(get_password_reset_service)
+    db: Session = Depends(get_db)
 ):
     """
     Reset password using a valid token.
@@ -94,6 +95,8 @@ async def reset_password(
     - Passwords must match
     - All existing sessions will be invalidated
     """
+    reset_service = PasswordResetService(db)
+    
     # Validate passwords match
     if reset_data.new_password != reset_data.confirm_password:
         raise HTTPException(

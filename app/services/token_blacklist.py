@@ -171,6 +171,6 @@ class TokenBlacklistService:
         return deleted
 
 
-def get_token_blacklist_service(db: Session) -> TokenBlacklistService:
+def get_token_blacklist_service(db: Session):
     """Dependency to get token blacklist service."""
     return TokenBlacklistService(db)

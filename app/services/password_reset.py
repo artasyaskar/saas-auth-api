@@ -171,6 +171,6 @@ class PasswordResetService:
         return deleted
 
 
-def get_password_reset_service(db: Session) -> PasswordResetService:
+def get_password_reset_service(db: Session):
     """Dependency to get password reset service."""
     return PasswordResetService(db)

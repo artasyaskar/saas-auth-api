@@ -52,12 +52,12 @@ async def lifespan(app: FastAPI):
     - Background service initialization
     - Graceful shutdown cleanup
     """
-    logger.info("application_startup", event="startup_begin")
+    logger.info("application_startup", startup_event="begin")
     
     # Create database tables
     try:
         Base.metadata.create_all(bind=engine)
-        logger.info("database_initialized", event="db_tables_created")
+        logger.info("database_initialized", db_event="tables_created")
     except Exception as e:
         logger.error("database_init_failed", error=str(e))
         raise
@@ -76,20 +76,20 @@ async def lifespan(app: FastAPI):
             )
             db.add(admin_user)
             db.commit()
-            logger.info("default_admin_created", username="admin")
+            logger.info("default_admin_created", admin_username="admin")
     except Exception as e:
         logger.error("admin_creation_failed", error=str(e))
     finally:
         db.close()
     
-    logger.info("application_startup_complete", event="startup_end")
+    logger.info("application_startup_complete", startup_event="end")
     
     yield
     
     # Shutdown cleanup
-    logger.info("application_shutdown", event="shutdown_begin")
+    logger.info("application_shutdown", shutdown_event="begin")
     # TODO: Close Redis connections, background task queues, etc.
-    logger.info("application_shutdown_complete", event="shutdown_end")
+    logger.info("application_shutdown_complete", shutdown_event="end")
 
 
 app = FastAPI(
@@ -155,11 +155,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={
-            "error": {
-                "code": exc.status_code,
-                "message": exc.detail,
-                "request_id": request_id,
-            }
+            "detail": exc.detail,
+            "request_id": request_id,
         },
         headers=getattr(exc, "headers", None),
     )

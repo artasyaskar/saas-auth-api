@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import List
 
@@ -52,12 +53,12 @@ async def get_usage_stats(current_user: User = Depends(get_current_active_user),
     # Get most used endpoint
     most_used_result = db.query(UsageLog.endpoint).filter(
         UsageLog.user_id == current_user.id
-    ).group_by(UsageLog.endpoint).order_by(db.func.count().desc()).first()
+    ).group_by(UsageLog.endpoint).order_by(func.count().desc()).first()
     
     most_used_endpoint = most_used_result[0] if most_used_result else "N/A"
     
     # Get average response time
-    avg_response_time = db.query(db.func.avg(UsageLog.response_time_ms)).filter(
+    avg_response_time = db.query(func.avg(UsageLog.response_time_ms)).filter(
         UsageLog.user_id == current_user.id,
         UsageLog.response_time_ms.isnot(None)
     ).scalar() or 0.0

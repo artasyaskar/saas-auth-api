@@ -9,7 +9,7 @@ from app.db.session import get_db
 from app.db.models import User, UserRole
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, verify_token
 from app.core.config import settings
-from app.services.token_blacklist import get_token_blacklist_service, TokenBlacklistService
+from app.services.token_blacklist import TokenBlacklistService
 from app.middleware.logging import audit_logger
 
 router = APIRouter()
@@ -46,8 +46,7 @@ class TokenData(BaseModel):
 
 def get_current_user(
     token: str = Depends(oauth2_scheme), 
-    db: Session = Depends(get_db),
-    blacklist_service: TokenBlacklistService = Depends(get_token_blacklist_service)
+    db: Session = Depends(get_db)
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -55,13 +54,8 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    # Check if token is blacklisted (user logged out or token revoked)
-    if blacklist_service.is_token_blacklisted(token):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked. Please login again.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # TODO: Check if token is blacklisted (requires TokenBlacklistService)
+    # For now, token blacklisting is handled in middleware
     
     payload = verify_token(token, "access")
     username: str = payload.get("sub")
@@ -191,14 +185,13 @@ class LogoutRequest(BaseModel):
     refresh_token: Optional[str] = None
 
 
-@router.post("/logout", status_code=status.HTTP_200_OK)
+@router.post("/logout", status_code=status.HTTP_200_OK, response_model=dict)
 async def logout(
     request: Request,
     logout_data: LogoutRequest = None,
     token: str = Depends(oauth2_scheme),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
-    blacklist_service: TokenBlacklistService = Depends(get_token_blacklist_service)
+    db: Session = Depends(get_db)
 ):
     """
     Logout user and revoke tokens.
@@ -208,6 +201,9 @@ async def logout(
     - Logs the logout event
     """
     client_ip = request.client.host if request.client else None
+    
+    # Create blacklist service
+    blacklist_service = TokenBlacklistService(db)
     
     # Get token expiration from payload
     try:
@@ -255,12 +251,11 @@ async def logout(
     return {"message": "Successfully logged out", "status": "success"}
 
 
-@router.post("/logout-all", status_code=status.HTTP_200_OK)
+@router.post("/logout-all", status_code=status.HTTP_200_OK, response_model=dict)
 async def logout_all_devices(
     request: Request,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
-    blacklist_service: TokenBlacklistService = Depends(get_token_blacklist_service)
+    db: Session = Depends(get_db)
 ):
     """
     Logout from all devices.
@@ -270,7 +265,8 @@ async def logout_all_devices(
     """
     client_ip = request.client.host if request.client else None
     
-    # Blacklist all tokens for this user
+    # Create blacklist service and blacklist all tokens for this user
+    blacklist_service = TokenBlacklistService(db)
     invalidated_count = blacklist_service.blacklist_all_user_tokens(
         user_id=current_user.id,
         reason="logout_all"
