@@ -512,7 +512,7 @@ class Notification(Base):
     notification_id = Column(String(64), nullable=False, unique=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     notification_type = Column(String(50), nullable=True)
-    title = Column(String(255), nullable=False)
+    title = Column(String(255), nullable=True)
     message = Column(Text, nullable=False)
     channel = Column(String(20), nullable=False)
     priority = Column(String(20), default="normal", nullable=False)
