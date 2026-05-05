@@ -81,6 +81,7 @@ class UsageLog(Base):
     status_code = Column(Integer, nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     response_time_ms = Column(Float, nullable=True)
+    ip_address = Column(String(45), nullable=True)
     
     user = relationship("User", back_populates="usage_logs")
 
@@ -510,7 +511,7 @@ class Notification(Base):
     id = Column(Integer, primary_key=True, index=True)
     notification_id = Column(String(64), nullable=False, unique=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    notification_type = Column(String(50), nullable=False)
+    notification_type = Column(String(50), nullable=True)
     title = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
     channel = Column(String(20), nullable=False)
