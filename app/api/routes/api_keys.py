@@ -9,7 +9,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 
 from app.db.session import get_db
-from app.db.models import User, ApiKey
+from app.db.models import User, APIKey as ApiKey
 from app.api.auth import get_current_active_user
 from app.core.security import generate_secure_token, hash_token
 
