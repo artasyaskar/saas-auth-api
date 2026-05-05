@@ -11,19 +11,17 @@ Tests end-to-end authentication scenarios including:
 - 2FA flow
 """
 import pytest
-import asyncio
-from httpx import AsyncClient
+from httpx import Client
 from datetime import datetime, timedelta
 
 
 class TestRegistrationFlow:
     """Integration tests for user registration flow."""
     
-    @pytest.mark.asyncio
-    async def test_complete_registration_flow(self, client: AsyncClient):
+    def test_complete_registration_flow(self, client: Client):
         """Test complete registration with email verification."""
         # Step 1: Register user
-        register_response = await client.post(
+        register_response = client.post(
             "/auth/register",
             json={
                 "username": "integration_user",
@@ -40,7 +38,7 @@ class TestRegistrationFlow:
         access_token = data["access_token"]
         
         # Step 2: Verify user profile
-        profile_response = await client.get(
+        profile_response = client.get(
             "/users/profile",
             headers={"Authorization": f"Bearer {access_token}"}
         )
@@ -51,7 +49,7 @@ class TestRegistrationFlow:
         assert profile["email"] == "integration@example.com"
         
         # Step 3: Update profile
-        update_response = await client.put(
+        update_response = client.put(
             "/users/profile",
             json={"email": "updated@example.com"},
             headers={"Authorization": f"Bearer {access_token}"}
@@ -59,11 +57,10 @@ class TestRegistrationFlow:
         
         assert update_response.status_code == 200
     
-    @pytest.mark.asyncio
-    async def test_registration_with_duplicate_email(self, client: AsyncClient):
+    def test_registration_with_duplicate_email(self, client: Client):
         """Test registration with duplicate email fails."""
         # First registration
-        await client.post(
+        client.post(
             "/auth/register",
             json={
                 "username": "user1",
@@ -73,7 +70,7 @@ class TestRegistrationFlow:
         )
         
         # Second registration with same email
-        response = await client.post(
+        response = client.post(
             "/auth/register",
             json={
                 "username": "user2",
@@ -88,11 +85,10 @@ class TestRegistrationFlow:
 class TestLoginFlow:
     """Integration tests for login flow."""
     
-    @pytest.mark.asyncio
-    async def test_complete_login_flow(self, client: AsyncClient):
+    def test_complete_login_flow(self, client: Client):
         """Test complete login flow with token refresh."""
         # Register user first
-        await client.post(
+        client.post(
             "/auth/register",
             json={
                 "username": "login_user",
@@ -102,7 +98,7 @@ class TestLoginFlow:
         )
         
         # Login
-        login_response = await client.post(
+        login_response = client.post(
             "/auth/login",
             json={
                 "username": "login_user",
@@ -116,7 +112,7 @@ class TestLoginFlow:
         refresh_token = data["refresh_token"]
         
         # Access protected endpoint
-        protected_response = await client.get(
+        protected_response = client.get(
             "/users/profile",
             headers={"Authorization": f"Bearer {access_token}"}
         )
@@ -124,7 +120,7 @@ class TestLoginFlow:
         assert protected_response.status_code == 200
         
         # Refresh token
-        refresh_response = await client.post(
+        refresh_response = client.post(
             "/auth/refresh",
             json={"refresh_token": refresh_token}
         )
@@ -135,17 +131,16 @@ class TestLoginFlow:
         assert new_data["access_token"] != access_token
         
         # Verify new token works
-        new_protected_response = await client.get(
+        new_protected_response = client.get(
             "/users/profile",
             headers={"Authorization": f"Bearer {new_data['access_token']}"}
         )
         
         assert new_protected_response.status_code == 200
     
-    @pytest.mark.asyncio
-    async def test_login_with_invalid_credentials(self, client: AsyncClient):
+    def test_login_with_invalid_credentials(self, client: Client):
         """Test login with invalid credentials fails."""
-        response = await client.post(
+        response = client.post(
             "/auth/login",
             json={
                 "username": "nonexistent",
@@ -159,11 +154,10 @@ class TestLoginFlow:
 class TestLogoutFlow:
     """Integration tests for logout flow."""
     
-    @pytest.mark.asyncio
-    async def test_complete_logout_flow(self, client: AsyncClient):
+    def test_complete_logout_flow(self, client: Client):
         """Test complete logout flow with token blacklisting."""
         # Register and login
-        register_response = await client.post(
+        register_response = client.post(
             "/auth/register",
             json={
                 "username": "logout_user",
@@ -175,7 +169,7 @@ class TestLogoutFlow:
         access_token = register_response.json()["access_token"]
         
         # Logout
-        logout_response = await client.post(
+        logout_response = client.post(
             "/auth/logout",
             headers={"Authorization": f"Bearer {access_token}"}
         )
@@ -183,7 +177,7 @@ class TestLogoutFlow:
         assert logout_response.status_code == 200
         
         # Verify token is blacklisted
-        protected_response = await client.get(
+        protected_response = client.get(
             "/users/profile",
             headers={"Authorization": f"Bearer {access_token}"}
         )
@@ -194,11 +188,10 @@ class TestLogoutFlow:
 class TestPasswordResetFlow:
     """Integration tests for password reset flow."""
     
-    @pytest.mark.asyncio
-    async def test_complete_password_reset_flow(self, client: AsyncClient):
+    def test_complete_password_reset_flow(self, client: Client):
         """Test complete password reset flow."""
         # Register user
-        await client.post(
+        client.post(
             "/auth/register",
             json={
                 "username": "reset_user",
@@ -208,7 +201,7 @@ class TestPasswordResetFlow:
         )
         
         # Request password reset
-        request_response = await client.post(
+        request_response = client.post(
             "/auth/password-reset/request",
             json={"email": "reset@example.com"}
         )
@@ -220,7 +213,7 @@ class TestPasswordResetFlow:
         # (This would require mocking email service)
         
         # Reset password with token
-        # reset_response = await client.post(
+        # reset_response = client.post(
         #     "/auth/password-reset/reset",
         #     json={
         #         "token": "test_token",
@@ -231,7 +224,7 @@ class TestPasswordResetFlow:
         # assert reset_response.status_code == 200
         
         # Login with new password
-        # login_response = await client.post(
+        # login_response = client.post(
         #     "/auth/login",
         #     json={
         #         "username": "reset_user",
@@ -245,18 +238,16 @@ class TestPasswordResetFlow:
 class TestOAuthFlow:
     """Integration tests for OAuth flow."""
     
-    @pytest.mark.asyncio
-    async def test_oauth_authorization_url(self, client: AsyncClient):
+    def test_oauth_authorization_url(self, client: Client):
         """Test getting OAuth authorization URL."""
-        response = await client.get("/auth/oauth/google/url")
+        response = client.get("/auth/oauth/google/url")
         
         assert response.status_code == 200
         data = response.json()
         assert "authorization_url" in data
         assert "state" in data
     
-    @pytest.mark.asyncio
-    async def test_oauth_callback(self, client: AsyncClient):
+    def test_oauth_callback(self, client: Client):
         """Test OAuth callback handling."""
         # This would require mocking OAuth provider
         # For integration testing, we'd use test OAuth credentials
@@ -266,11 +257,10 @@ class TestOAuthFlow:
 class TestTwoFactorFlow:
     """Integration tests for 2FA flow."""
     
-    @pytest.mark.asyncio
-    async def test_complete_2fa_flow(self, client: AsyncClient):
+    def test_complete_2fa_flow(self, client: Client):
         """Test complete 2FA setup and verification flow."""
         # Register user
-        register_response = await client.post(
+        register_response = client.post(
             "/auth/register",
             json={
                 "username": "2fa_user",
@@ -282,7 +272,7 @@ class TestTwoFactorFlow:
         access_token = register_response.json()["access_token"]
         
         # Setup 2FA
-        setup_response = await client.post(
+        setup_response = client.post(
             "/auth/2fa/setup",
             headers={"Authorization": f"Bearer {access_token}"}
         )
@@ -306,11 +296,10 @@ class TestTwoFactorFlow:
 class TestSessionManagement:
     """Integration tests for session management."""
     
-    @pytest.mark.asyncio
-    async def test_multiple_device_login(self, client: AsyncClient):
+    def test_multiple_device_login(self, client: Client):
         """Test login from multiple devices."""
         # Register user
-        await client.post(
+        client.post(
             "/auth/register",
             json={
                 "username": "multi_device_user",
@@ -320,7 +309,7 @@ class TestSessionManagement:
         )
         
         # Login from device 1
-        device1_response = await client.post(
+        device1_response = client.post(
             "/auth/login",
             json={
                 "username": "multi_device_user",
@@ -331,7 +320,7 @@ class TestSessionManagement:
         device1_token = device1_response.json()["access_token"]
         
         # Login from device 2
-        device2_response = await client.post(
+        device2_response = client.post(
             "/auth/login",
             json={
                 "username": "multi_device_user",
@@ -342,12 +331,12 @@ class TestSessionManagement:
         device2_token = device2_response.json()["access_token"]
         
         # Both tokens should work
-        device1_profile = await client.get(
+        device1_profile = client.get(
             "/users/profile",
             headers={"Authorization": f"Bearer {device1_token}"}
         )
         
-        device2_profile = await client.get(
+        device2_profile = client.get(
             "/users/profile",
             headers={"Authorization": f"Bearer {device2_token}"}
         )
@@ -355,11 +344,10 @@ class TestSessionManagement:
         assert device1_profile.status_code == 200
         assert device2_profile.status_code == 200
     
-    @pytest.mark.asyncio
-    async def test_logout_all_devices(self, client: AsyncClient):
+    def test_logout_all_devices(self, client: Client):
         """Test logout from all devices."""
         # Register and login from multiple devices
-        await client.post(
+        client.post(
             "/auth/register",
             json={
                 "username": "logout_all_user",
@@ -369,7 +357,7 @@ class TestSessionManagement:
         )
         
         # Login from device 1
-        device1_response = await client.post(
+        device1_response = client.post(
             "/auth/login",
             json={
                 "username": "logout_all_user",
@@ -380,7 +368,7 @@ class TestSessionManagement:
         device1_token = device1_response.json()["access_token"]
         
         # Login from device 2
-        device2_response = await client.post(
+        device2_response = client.post(
             "/auth/login",
             json={
                 "username": "logout_all_user",
@@ -391,7 +379,7 @@ class TestSessionManagement:
         device2_token = device2_response.json()["access_token"]
         
         # Logout from all devices
-        logout_all_response = await client.post(
+        logout_all_response = client.post(
             "/auth/logout-all",
             headers={"Authorization": f"Bearer {device1_token}"}
         )
@@ -399,12 +387,12 @@ class TestSessionManagement:
         assert logout_all_response.status_code == 200
         
         # Both tokens should be invalid
-        device1_profile = await client.get(
+        device1_profile = client.get(
             "/users/profile",
             headers={"Authorization": f"Bearer {device1_token}"}
         )
         
-        device2_profile = await client.get(
+        device2_profile = client.get(
             "/users/profile",
             headers={"Authorization": f"Bearer {device2_token}"}
         )
@@ -416,11 +404,10 @@ class TestSessionManagement:
 class TestTokenExpiry:
     """Integration tests for token expiry handling."""
     
-    @pytest.mark.asyncio
-    async def test_expired_token_refresh(self, client: AsyncClient):
+    def test_expired_token_refresh(self, client: Client):
         """Test automatic token refresh on expiry."""
         # Register and login
-        register_response = await client.post(
+        register_response = client.post(
             "/auth/register",
             json={
                 "username": "expiry_user",
@@ -435,7 +422,7 @@ class TestTokenExpiry:
         # Simulate token expiry (in real test, would wait or mock time)
         # For now, test refresh endpoint directly
         
-        refresh_response = await client.post(
+        refresh_response = client.post(
             "/auth/refresh",
             json={"refresh_token": refresh_token}
         )
@@ -444,7 +431,7 @@ class TestTokenExpiry:
         new_access_token = refresh_response.json()["access_token"]
         
         # New token should work
-        profile_response = await client.get(
+        profile_response = client.get(
             "/users/profile",
             headers={"Authorization": f"Bearer {new_access_token}"}
         )
@@ -455,11 +442,10 @@ class TestTokenExpiry:
 class TestConcurrentRequests:
     """Integration tests for concurrent request handling."""
     
-    @pytest.mark.asyncio
-    async def test_concurrent_authenticated_requests(self, client: AsyncClient):
+    def test_concurrent_authenticated_requests(self, client: Client):
         """Test multiple concurrent authenticated requests."""
         # Register and login
-        register_response = await client.post(
+        register_response = client.post(
             "/auth/register",
             json={
                 "username": "concurrent_user",
@@ -479,7 +465,7 @@ class TestConcurrentRequests:
             )
             tasks.append(task)
         
-        responses = await asyncio.gather(*tasks)
+        responses = tasks
         
         # All should succeed
         for response in responses:
