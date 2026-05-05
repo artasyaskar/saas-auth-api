@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum, ForeignKey, Text, Float
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum, ForeignKey, Text, Float, JSON, LargeBinary
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -18,6 +18,26 @@ __all__ = [
     "EmailVerification",
     "UserSession",
     "AuditLog",
+    "Webhook",
+    "WebhookEvent",
+    "WebhookDelivery",
+    "EmailLog",
+    "EmailTemplate",
+    "FeatureFlag",
+    "APIVersion",
+    "APIEndpoint",
+    "FileMetadata",
+    "FileVersion",
+    "Message",
+    "MessageThread",
+    "Notification",
+    "Workflow",
+    "WorkflowExecution",
+    "WorkflowTask",
+    "ConsentRecord",
+    "DataExportRequest",
+    "APIKey",
+    "SecurityEvent",
 ]
 
 Base = declarative_base()
@@ -182,3 +202,343 @@ class AuditLog(Base):
     __table_args__ = (
         {"sqlite_autoincrement": True},
     )
+
+
+class Webhook(Base):
+    """Webhook configuration for event notifications."""
+    __tablename__ = "webhooks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    url = Column(String(500), nullable=False)
+    secret = Column(String(100), nullable=True)
+    events = Column(JSON, nullable=False)  # List of event types
+    headers = Column(JSON, nullable=True)
+    retry_policy = Column(JSON, nullable=True)
+    timeout = Column(Integer, default=30, nullable=False)
+    status = Column(String(20), default="active", nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class WebhookEvent(Base):
+    """Webhook event record."""
+    __tablename__ = "webhook_events"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    event_type = Column(String(50), nullable=False, index=True)
+    event_id = Column(String(64), nullable=False, unique=True)
+    data = Column(JSON, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    metadata = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class WebhookDelivery(Base):
+    """Webhook delivery tracking."""
+    __tablename__ = "webhook_deliveries"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    webhook_id = Column(Integer, ForeignKey("webhooks.id"), nullable=False)
+    event_id = Column(String(64), nullable=False)
+    status = Column(String(20), default="pending", nullable=False)
+    attempt_count = Column(Integer, default=0, nullable=False)
+    response_status = Column(Integer, nullable=True)
+    response_body = Column(Text, nullable=True)
+    last_error = Column(Text, nullable=True)
+    next_retry_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+    failed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class EmailLog(Base):
+    """Email delivery log."""
+    __tablename__ = "email_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(String(64), nullable=False, unique=True)
+    to_email = Column(String(255), nullable=False)
+    subject = Column(String(500), nullable=False)
+    status = Column(String(20), default="pending", nullable=False)
+    provider = Column(String(50), nullable=False)
+    template_id = Column(String(100), nullable=True)
+    metadata = Column(JSON, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class EmailTemplate(Base):
+    """Email template storage."""
+    __tablename__ = "email_templates"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    subject = Column(String(500), nullable=False)
+    html_content = Column(Text, nullable=False)
+    text_content = Column(Text, nullable=True)
+    variables = Column(JSON, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class FeatureFlag(Base):
+    """Feature flag configuration."""
+    __tablename__ = "feature_flags"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    default_value = Column(Boolean, default=False, nullable=False)
+    strategy = Column(String(50), nullable=False)
+    rollout_percentage = Column(Integer, default=0, nullable=False)
+    target_users = Column(JSON, nullable=True)
+    target_attributes = Column(JSON, nullable=True)
+    schedule_start = Column(DateTime(timezone=True), nullable=True)
+    schedule_end = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    exposure_count = Column(Integer, default=0, nullable=False)
+    evaluation_count = Column(Integer, default=0, nullable=False)
+    enabled_count = Column(Integer, default=0, nullable=False)
+    variants = Column(JSON, nullable=True)
+    environment_overrides = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+class APIVersion(Base):
+    """API version management."""
+    __tablename__ = "api_versions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    version = Column(String(20), nullable=False, unique=True)
+    status = Column(String(20), nullable=False)
+    release_date = Column(DateTime(timezone=True), nullable=False)
+    deprecation_date = Column(DateTime(timezone=True), nullable=True)
+    sunset_date = Column(DateTime(timezone=True), nullable=True)
+    retirement_date = Column(DateTime(timezone=True), nullable=True)
+    breaking_changes = Column(JSON, nullable=True)
+    migration_guide = Column(Text, nullable=True)
+    canary_percentage = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class APIEndpoint(Base):
+    """API endpoint configuration."""
+    __tablename__ = "api_endpoints"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    path = Column(String(255), nullable=False)
+    method = Column(String(10), nullable=False)
+    versions = Column(JSON, nullable=False)
+    default_version = Column(String(20), nullable=False)
+    deprecated_in = Column(String(20), nullable=True)
+    removed_in = Column(String(20), nullable=True)
+    alternatives = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class FileMetadata(Base):
+    """File storage metadata."""
+    __tablename__ = "file_metadata"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    file_id = Column(String(64), nullable=False, unique=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    original_filename = Column(String(255), nullable=False)
+    storage_path = Column(String(500), nullable=False)
+    content_type = Column(String(100), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    file_hash = Column(String(64), nullable=False)
+    access_level = Column(String(20), default="private", nullable=False)
+    url = Column(String(500), nullable=False)
+    thumbnail_url = Column(String(500), nullable=True)
+    status = Column(String(20), default="completed", nullable=False)
+    version_count = Column(Integer, default=0, nullable=False)
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class FileVersion(Base):
+    """File version tracking."""
+    __tablename__ = "file_versions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    original_file_id = Column(String(64), nullable=False)
+    new_file_id = Column(String(64), nullable=False)
+    version_number = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Message(Base):
+    """In-app messaging."""
+    __tablename__ = "messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(String(64), nullable=False, unique=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    thread_id = Column(String(64), nullable=True, index=True)
+    content = Column(Text, nullable=False)
+    message_type = Column(String(20), nullable=False)
+    status = Column(String(20), default="sent", nullable=False)
+    metadata = Column(JSON, nullable=True)
+    attachments = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class MessageThread(Base):
+    """Message thread for conversations."""
+    __tablename__ = "message_threads"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    thread_id = Column(String(64), nullable=False, unique=True)
+    thread_type = Column(String(20), nullable=False)
+    participant_ids = Column(JSON, nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    message_count = Column(Integer, default=0, nullable=False)
+    last_message_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class Notification(Base):
+    """User notifications."""
+    __tablename__ = "notifications"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    notification_id = Column(String(64), nullable=False, unique=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    body = Column(Text, nullable=False)
+    channel = Column(String(20), nullable=False)
+    priority = Column(String(20), default="normal", nullable=False)
+    data = Column(JSON, nullable=True)
+    scheduled_for = Column(DateTime(timezone=True), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(20), default="pending", nullable=False)
+    delivered_at = Column(DateTime(timezone=True), nullable=True)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Workflow(Base):
+    """Workflow definition."""
+    __tablename__ = "workflows"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    version = Column(String(20), nullable=False)
+    definition = Column(JSON, nullable=False)
+    variables = Column(JSON, nullable=True)
+    timeout_minutes = Column(Integer, nullable=True)
+    retry_policy = Column(JSON, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class WorkflowExecution(Base):
+    """Workflow execution tracking."""
+    __tablename__ = "workflow_executions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    execution_id = Column(String(64), nullable=False, unique=True)
+    workflow_id = Column(Integer, ForeignKey("workflows.id"), nullable=False)
+    initiator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(String(20), default="pending", nullable=False)
+    input_data = Column(JSON, nullable=True)
+    output_data = Column(JSON, nullable=True)
+    error_message = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class WorkflowTask(Base):
+    """Workflow task execution."""
+    __tablename__ = "workflow_tasks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    execution_id = Column(String(64), nullable=False, index=True)
+    task_id = Column(String(64), nullable=False)
+    task_type = Column(String(50), nullable=False)
+    action = Column(String(100), nullable=False)
+    config = Column(JSON, nullable=True)
+    status = Column(String(20), default="pending", nullable=False)
+    output_data = Column(JSON, nullable=True)
+    error_message = Column(Text, nullable=True)
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class ConsentRecord(Base):
+    """User consent tracking for GDPR/CCPA."""
+    __tablename__ = "consent_records"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    consent_type = Column(String(50), nullable=False)
+    status = Column(String(20), nullable=False)
+    granted_at = Column(DateTime(timezone=True), nullable=False)
+    granted_from = Column(String(255), nullable=False)
+    metadata = Column(JSON, nullable=True)
+    withdrawn_at = Column(DateTime(timezone=True), nullable=True)
+    withdrawal_reason = Column(Text, nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class DataExportRequest(Base):
+    """GDPR data export requests."""
+    __tablename__ = "data_export_requests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    request_id = Column(String(64), nullable=False, unique=True)
+    status = Column(String(20), default="pending", nullable=False)
+    include_deleted = Column(Boolean, default=False, nullable=False)
+    download_url = Column(String(500), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class APIKey(Base):
+    """API key management."""
+    __tablename__ = "api_keys"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    key = Column(String(64), nullable=False, unique=True, index=True)
+    name = Column(String(100), nullable=False)
+    scopes = Column(JSON, nullable=True)
+    rate_limit = Column(Integer, nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SecurityEvent(Base):
+    """Security event tracking."""
+    __tablename__ = "security_events"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    event_type = Column(String(50), nullable=False, index=True)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    details = Column(JSON, nullable=True)
+    severity = Column(String(20), nullable=False)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
