@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Auth API - Performance Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 2rem;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+        
+        .header p {
+            color: #94a3b8;
+            margin-top: 0.5rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+            color: #60a5fa;
+        }
+        
+        .stat-change {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .stat-change.positive {
+            color: #4ade80;
+        }
+        
+        .stat-change.negative {
+            color: #f87171;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+        }
+        
+        .chart-card.full-width {
+            grid-column: span 2;
+        }
+        
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #e2e8f0;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .table-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            margin-bottom: 2rem;
+        }
+        
+        .table-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #e2e8f0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+        
+        th {
+            font-weight: 600;
+            color: #94a3b8;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        td {
+            color: #e2e8f0;
+        }
+        
+        tr:hover {
+            background: #334155;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-badge.success {
+            background: #059669;
+            color: white;
+        }
+        
+        .status-badge.warning {
+            background: #d97706;
+            color: white;
+        }
+        
+        .status-badge.error {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .status-badge.info {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .refresh-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            background: #2563eb;
+        }
+        
+        .time-range {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .time-range button {
+            background: #334155;
+            color: #e2e8f0;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .time-range button:hover,
+        .time-range button.active {
+            background: #3b82f6;
+        }
+        
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-card.full-width {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SaaS Auth API - Performance Dashboard</h1>
+        <p>Real-time monitoring and analytics</p>
+    </div>
+    
+    <div class="container">
+        <div class="time-range">
+            <button class="active" onclick="setTimeRange('1h')">1 Hour</button>
+            <button onclick="setTimeRange('24h')">24 Hours</button>
+            <button onclick="setTimeRange('7d')">7 Days</button>
+            <button onclick="setTimeRange('30d')">30 Days</button>
+            <button class="refresh-btn" onclick="refreshData()">Refresh</button>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-value" id="total-requests">0</div>
+                <div class="stat-change positive" id="requests-change">+0%</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Avg Response Time</div>
+                <div class="stat-value" id="avg-response">0ms</div>
+                <div class="stat-change" id="response-change">+0%</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Error Rate</div>
+                <div class="stat-value" id="error-rate">0%</div>
+                <div class="stat-change" id="error-change">+0%</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Active Users</div>
+                <div class="stat-value" id="active-users">0</div>
+                <div class="stat-change positive" id="users-change">+0%</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">API Keys</div>
+                <div class="stat-value" id="api-keys">0</div>
+                <div class="stat-change positive" id="keys-change">+0%</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-label">Cache Hit Rate</div>
+                <div class="stat-value" id="cache-hit">0%</div>
+                <div class="stat-change positive" id="cache-change">+0%</div>
+            </div>
+        </div>
+        
+        <div class="charts-grid">
+            <div class="chart-card full-width">
+                <div class="chart-title">Request Volume Over Time</div>
+                <div class="chart-container">
+                    <canvas id="requestsChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">Response Time Distribution</div>
+                <div class="chart-container">
+                    <canvas id="responseTimeChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">Error Rate Over Time</div>
+                <div class="chart-container">
+                    <canvas id="errorRateChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">Endpoint Performance</div>
+                <div class="chart-container">
+                    <canvas id="endpointChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-card">
+                <div class="chart-title">User Growth</div>
+                <div class="chart-container">
+                    <canvas id="userGrowthChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-card">
+            <div class="table-title">Recent Security Events</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Event Type</th>
+                        <th>Severity</th>
+                        <th>User</th>
+                        <th>IP Address</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="security-events">
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="table-card">
+            <div class="table-title">System Health</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Status</th>
+                        <th>Response Time</th>
+                        <th>Last Check</th>
+                    </tr>
+                </thead>
+                <tbody id="system-health">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // Chart instances
+        let requestsChart, responseTimeChart, errorRateChart, endpointChart, userGrowthChart;
+        
+        // Initialize charts
+        function initCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#94a3b8'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#334155' }
+                    },
+                    y: {
+                        ticks: { color: '#94a3b8' },
+                        grid: { color: '#334155' }
+                    }
+                }
+            };
+            
+            // Requests Chart
+            requestsChart = new Chart(document.getElementById('requestsChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Requests',
+                        data: [],
+                        borderColor: '#60a5fa',
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+            
+            // Response Time Chart
+            responseTimeChart = new Chart(document.getElementById('responseTimeChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['<50ms', '50-100ms', '100-200ms', '200-500ms', '500ms+'],
+                    datasets: [{
+                        label: 'Count',
+                        data: [],
+                        backgroundColor: ['#4ade80', '#60a5fa', '#fbbf24', '#f97316', '#ef4444']
+                    }]
+                },
+                options: chartOptions
+            });
+            
+            // Error Rate Chart
+            errorRateChart = new Chart(document.getElementById('errorRateChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Error Rate %',
+                        data: [],
+                        borderColor: '#f87171',
+                        backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+            
+            // Endpoint Chart
+            endpointChart = new Chart(document.getElementById('endpointChart'), {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Avg Response Time (ms)',
+                        data: [],
+                        backgroundColor: '#60a5fa'
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'y'
+                }
+            });
+            
+            // User Growth Chart
+            userGrowthChart = new Chart(document.getElementById('userGrowthChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Users',
+                        data: [],
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: chartOptions
+            });
+        }
+        
+        // Generate mock data
+        function generateData() {
+            const now = new Date();
+            const labels = [];
+            const requests = [];
+            const errorRates = [];
+            
+            for (let i = 24; i >= 0; i--) {
+                const time = new Date(now - i * 3600000);
+                labels.push(time.toLocaleTimeString());
+                requests.push(Math.floor(Math.random() * 1000) + 500);
+                errorRates.push((Math.random() * 2).toFixed(2));
+            }
+            
+            return { labels, requests, errorRates };
+        }
+        
+        // Update dashboard
+        function updateDashboard() {
+            const data = generateData();
+            
+            // Update stats
+            document.getElementById('total-requests').textContent = data.requests.reduce((a, b) => a + b, 0).toLocaleString();
+            document.getElementById('avg-response').textContent = Math.floor(Math.random() * 50 + 50) + 'ms';
+            document.getElementById('error-rate').textContent = (Math.random() * 2).toFixed(2) + '%';
+            document.getElementById('active-users').textContent = Math.floor(Math.random() * 500 + 1000);
+            document.getElementById('api-keys').textContent = Math.floor(Math.random() * 100 + 200);
+            document.getElementById('cache-hit').textContent = (Math.random() * 20 + 75).toFixed(1) + '%';
+            
+            // Update charts
+            requestsChart.data.labels = data.labels;
+            requestsChart.data.datasets[0].data = data.requests;
+            requestsChart.update();
+            
+            errorRateChart.data.labels = data.labels;
+            errorRateChart.data.datasets[0].data = data.errorRates;
+            errorRateChart.update();
+            
+            responseTimeChart.data.datasets[0].data = [
+                Math.floor(Math.random() * 300),
+                Math.floor(Math.random() * 200),
+                Math.floor(Math.random() * 150),
+                Math.floor(Math.random() * 100),
+                Math.floor(Math.random() * 50)
+            ];
+            responseTimeChart.update();
+            
+            endpointChart.data.labels = ['/auth/login', '/auth/register', '/users/me', '/api/keys', '/webhooks'];
+            endpointChart.data.datasets[0].data = [
+                Math.floor(Math.random() * 50 + 20),
+                Math.floor(Math.random() * 50 + 30),
+                Math.floor(Math.random() * 50 + 25),
+                Math.floor(Math.random() * 50 + 40),
+                Math.floor(Math.random() * 50 + 35)
+            ];
+            endpointChart.update();
+            
+            // User growth
+            const userLabels = [];
+            const userData = [];
+            let users = 1000;
+            for (let i = 30; i >= 0; i--) {
+                const date = new Date(now - i * 86400000);
+                userLabels.push(date.toLocaleDateString());
+                users += Math.floor(Math.random() * 50);
+                userData.push(users);
+            }
+            userGrowthChart.data.labels = userLabels;
+            userGrowthChart.data.datasets[0].data = userData;
+            userGrowthChart.update();
+            
+            // Update security events table
+            updateSecurityEvents();
+            
+            // Update system health table
+            updateSystemHealth();
+        }
+        
+        function updateSecurityEvents() {
+            const events = [
+                { timestamp: '2024-01-15 14:32:15', type: 'Login Success', severity: 'INFO', user: 'user@example.com', ip: '192.168.1.100', status: 'success' },
+                { timestamp: '2024-01-15 14:30:22', type: 'Failed Login', severity: 'WARNING', user: 'unknown', ip: '192.168.1.200', status: 'warning' },
+                { timestamp: '2024-01-15 14:28:45', type: 'Password Reset', severity: 'INFO', user: 'user2@example.com', ip: '192.168.1.150', status: 'success' },
+                { timestamp: '2024-01-15 14:25:10', type: 'API Key Created', severity: 'INFO', user: 'admin@example.com', ip: '192.168.1.50', status: 'success' },
+                { timestamp: '2024-01-15 14:20:33', type: 'Suspicious Activity', severity: 'ERROR', user: 'user3@example.com', ip: '192.168.1.250', status: 'error' }
+            ];
+            
+            const tbody = document.getElementById('security-events');
+            tbody.innerHTML = events.map(event => `
+                <tr>
+                    <td>${event.timestamp}</td>
+                    <td>${event.type}</td>
+                    <td><span class="status-badge ${event.severity.toLowerCase()}">${event.severity}</span></td>
+                    <td>${event.user}</td>
+                    <td>${event.ip}</td>
+                    <td><span class="status-badge ${event.status}">${event.status}</span></td>
+                </tr>
+            `).join('');
+        }
+        
+        function updateSystemHealth() {
+            const services = [
+                { name: 'API Server', status: 'success', response: '15ms', lastCheck: 'Just now' },
+                { name: 'Database', status: 'success', response: '5ms', lastCheck: 'Just now' },
+                { name: 'Redis Cache', status: 'success', response: '2ms', lastCheck: 'Just now' },
+                { name: 'Elasticsearch', status: 'warning', response: '150ms', lastCheck: '1 min ago' },
+                { name: 'Message Queue', status: 'success', response: '8ms', lastCheck: 'Just now' }
+            ];
+            
+            const tbody = document.getElementById('system-health');
+            tbody.innerHTML = services.map(service => `
+                <tr>
+                    <td>${service.name}</td>
+                    <td><span class="status-badge ${service.status}">${service.status}</span></td>
+                    <td>${service.response}</td>
+                    <td>${service.lastCheck}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function setTimeRange(range) {
+            document.querySelectorAll('.time-range button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            updateDashboard();
+        }
+        
+        function refreshData() {
+            updateDashboard();
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            updateDashboard();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(updateDashboard, 30000);
+        });
+    </script>
+</body>
+</html>
