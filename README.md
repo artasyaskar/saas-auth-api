@@ -1,304 +1,551 @@
 # SaaS Auth API
 
-A production-ready backend service that demonstrates secure authentication, role-based access control, rate limiting, usage tracking, and billing simulation.
+An enterprise-grade authentication and authorization service for SaaS applications with comprehensive features including OAuth2/OIDC, two-factor authentication, webhooks, feature flags, real-time notifications, GraphQL API, and more.
 
-##  Project Vision
+## Project Vision
 
-This project answers the critical hiring question: **"Can this person build and operate a secure, paid backend system?"**
+This project demonstrates the ability to build and operate a secure, scalable, and feature-rich backend system that powers real-world SaaS applications. It showcases:
 
-Most developers can build APIs that return JSON. Very few can:
-- Handle authentication correctly
-- Enforce permissions  
-- Protect APIs from abuse
-- Track usage
-- Simulate billing
+- **Enterprise Authentication**: JWT, OAuth2/OIDC, social login, 2FA
+- **Advanced Security**: Rate limiting, audit logging, fraud detection
+- **Developer Experience**: SDKs, GraphQL, comprehensive documentation
+- **Operational Excellence**: Monitoring, alerting, CI/CD, infrastructure as code
+- **Compliance**: GDPR/CCPA consent management, data export
+- **Scalability**: Redis Cluster, Elasticsearch, Kubernetes deployment
 
-This proves you understand how software actually makes money.
+## Features
 
-##  What This System Does
+### Core Authentication
+- JWT-based authentication with access and refresh tokens
+- OAuth2/OIDC integration (Google, GitHub, Apple)
+- Social login providers
+- Two-Factor Authentication (TOTP, SMS, Email)
+- API key management
+- Session management with multi-device support
 
-This is a backend service that:
--  Authenticates users using JWT (access + refresh tokens)
--  Enforces role-based access (USER, ADMIN)
--  Limits API calls per minute and per month
--  Tracks usage per user and endpoint
--  Simulates subscription plans (FREE vs PRO)
--  Blocks users when they exceed limits
--  Provides admin dashboard APIs
+### Security & Compliance
+- Role-based access control (RBAC)
+- Advanced rate limiting with Redis Cluster
+- Comprehensive audit logging
+- GDPR/CCPA consent management
+- Data export and deletion requests
+- Security event tracking
+- Fraud detection and risk scoring (ML)
 
-##  Tech Stack
+### Developer Tools
+- RESTful API with OpenAPI/Swagger documentation
+- GraphQL API with subscriptions for real-time updates
+- Multi-language SDKs (JavaScript, Python, React Native, Flutter)
+- Webhook management with retry logic
+- Feature flag management with A/B testing
+- API versioning and deprecation
 
-- **Backend**: Python 3.11+, FastAPI, Pydantic
-- **Auth & Security**: JWT, bcrypt password hashing
-- **Database**: PostgreSQL (with SQLite fallback)
+### Business Features
+- Subscription and billing management (Stripe integration)
+- Usage-based billing
+- Usage analytics and reporting
+- Funnel analysis and predictive analytics
+- Geolocation and IP intelligence
+
+### Communication
+- Real-time notifications via WebSocket
+- In-app messaging system
+- Multi-channel notifications (email, SMS, push)
+- Email service with multi-provider support (SMTP, SendGrid, Mailgun)
+
+### Infrastructure & Operations
+- File storage with multi-provider support (S3, local)
+- Search service with Elasticsearch integration
+- Workflow automation engine
+- Cache invalidation service
+- Comprehensive monitoring (Prometheus, Grafana)
+- CI/CD pipeline with GitHub Actions
+- Docker Compose for local development
+- Kubernetes deployment manifests
+- Terraform infrastructure as code
+
+## Tech Stack
+
+### Backend
+- **Language**: Python 3.11+
+- **Framework**: FastAPI
 - **ORM**: SQLAlchemy
-- **Rate Limiting**: Redis + in-memory fallback
-- **Billing**: Stripe test mode (simulation)
-- **Infrastructure**: Docker, docker-compose
+- **Database**: PostgreSQL 15
+- **Cache**: Redis 7, Redis Cluster
+- **Search**: Elasticsearch 8.11
+- **GraphQL**: Strawberry
 
-##  Project Structure
+### Security
+- **Authentication**: JWT, OAuth2/OIDC (Authlib)
+- **Password Hashing**: bcrypt
+- **Rate Limiting**: Redis Cluster with multiple algorithms
+- **Audit Logging**: Custom service with compliance tracking
+
+### Infrastructure
+- **Containerization**: Docker, Docker Compose
+- **Orchestration**: Kubernetes
+- **IaC**: Terraform (AWS)
+- **CI/CD**: GitHub Actions
+- **Monitoring**: Prometheus, Grafana
+- **Reverse Proxy**: Nginx
+
+### Billing & Payments
+- **Payment Provider**: Stripe
+- **Webhooks**: Custom service with retry logic
+
+### Development Tools
+- **Testing**: pytest, pytest-asyncio, pytest-cov
+- **Linting**: Black, Flake8, MyPy
+- **Security**: Safety, Bandit
+- **Load Testing**: Locust-style benchmarks
+
+## Project Structure
 
 ```
 saas-auth-api/
 ├── app/
-│   ├── main.py              # FastAPI application
+│   ├── main.py                      # FastAPI application entry point
 │   ├── api/
-│   │   ├── auth.py          # Authentication endpoints
-│   │   ├── users.py         # User profile and usage
-│   │   └── admin.py         # Admin dashboard APIs
+│   │   ├── auth.py                  # Authentication endpoints
+│   │   ├── users.py                 # User profile and usage
+│   │   ├── admin.py                 # Admin dashboard APIs
+│   │   ├── routes/
+│   │   │   ├── consent.py           # Consent management
+│   │   │   ├── messaging.py         # Messaging service
+│   │   │   ├── workflows.py         # Workflow automation
+│   │   │   ├── files.py             # File storage
+│   │   │   └── feature_flags.py     # Feature flags
+│   │   ├── openapi.py               # OpenAPI/Swagger config
+│   │   └── graphql/
+│   │       └── schema.py            # GraphQL schema
 │   ├── core/
-│   │   ├── config.py        # Configuration management
-│   │   ├── security.py      # JWT and password hashing
-│   │   └── rate_limit.py    # Rate limiting logic
+│   │   ├── config.py                # Configuration management
+│   │   ├── security.py              # JWT and password hashing
+│   │   └── rate_limit.py            # Rate limiting logic
 │   ├── db/
-│   │   ├── models.py        # Database models
-│   │   └── session.py       # Database session
-│   └── services/
-│       ├── billing.py       # Billing simulation
-│       └── usage.py         # Usage tracking
+│   │   ├── models.py                # Database models
+│   │   └── session.py               # Database session
+│   ├── services/
+│   │   ├── billing.py               # Billing service
+│   │   ├── usage.py                 # Usage tracking
+│   │   ├── oauth2.py                # OAuth2/OIDC service
+│   │   ├── two_factor.py            # 2FA service
+│   │   ├── social_login.py          # Social login
+│   │   ├── websocket.py             # WebSocket service
+│   │   ├── audit.py                 # Audit logging
+│   │   ├── rate_limit_cluster.py    # Redis Cluster rate limiting
+│   │   ├── monitoring.py            # Monitoring service
+│   │   ├── geolocation.py           # Geolocation service
+│   │   ├── email.py                 # Email service
+│   │   ├── webhook.py               # Webhook service
+│   │   ├── analytics.py             # Analytics service
+│   │   ├── consent.py               # Consent management
+│   │   ├── api_gateway.py           # API gateway
+│   │   ├── file_storage.py          # File storage
+│   │   ├── search.py                # Search service
+│   │   ├── workflow.py              # Workflow automation
+│   │   ├── messaging.py             # Messaging service
+│   │   ├── ml_service.py            # ML service
+│   │   ├── api_versioning.py        # API versioning
+│   │   ├── feature_flags.py         # Feature flags
+│   │   ├── cache_invalidation.py    # Cache invalidation
+│   │   └── rate_limiter_config.py   # Rate limiter config
+│   └── graphql/
+│       └── schema.py                # GraphQL schema
+├── alembic/
+│   └── versions/                    # Database migrations
+├── benchmarks/
+│   └── load_test.py                 # Load testing
+├── cli/
+│   └── main.py                      # CLI tool
+├── dashboard/
+│   └── index.html                   # Performance dashboard
 ├── docker/
 │   └── Dockerfile
-├── tests/                   # Comprehensive test suite
+├── docs/
+│   ├── ARCHITECTURE.md              # Architecture documentation
+│   ├── DEVELOPMENT.md               # Development guide
+│   └── API_EXAMPLES.md              # API examples
+├── examples/
+│   └── react-app/                   # React example
+├── grafana/
+│   └── provisioning/                # Grafana dashboards
+├── kubernetes/
+│   └── deployment.yaml              # K8s manifests
+├── nginx/
+│   └── nginx.conf                   # Nginx config
+├── prometheus/
+│   ├── prometheus.yml               # Prometheus config
+│   └── alerts.yml                   # Alert rules
+├── scripts/
+│   └── security_scan.py            # Security scanning
+├── sdk/
+│   ├── javascript/                  # JavaScript SDK
+│   ├── react-native/                # React Native SDK
+│   └── flutter/                     # Flutter SDK
+├── terraform/
+│   ├── main.tf                      # Terraform config
+│   └── variables.tf                # Terraform variables
+├── tests/
+│   ├── integration/                 # Integration tests
+│   └── unit/                        # Unit tests
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yml                # CI/CD pipeline
 ├── requirements.txt
 ├── docker-compose.yml
+├── alembic.ini
 └── README.md
 ```
 
-##  Installation & Setup
+## Installation & Setup
 
 ### Prerequisites
 - Python 3.11+
 - Docker & Docker Compose
-- Redis (optional, for rate limiting)
-- PostgreSQL (optional, defaults to SQLite)
+- PostgreSQL 15+
+- Redis 7+
+- Elasticsearch 8.11+ (optional, for search)
+- Node.js 18+ (for example apps)
 
-### Quick Start
+### Quick Start with Docker Compose
 
-1. **Clone and setup**
+1. **Clone the repository**
 ```bash
 git clone https://github.com/artasyaskar/saas-auth-api
 cd saas-auth-api
 ```
 
-2. **Environment configuration**
+2. **Configure environment variables**
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
 ```
 
-3. **Using Docker (Recommended)**
+3. **Start all services**
 ```bash
 docker-compose up -d
 ```
 
-4. **Manual setup (Development)**
+This will start:
+- API application (FastAPI)
+- PostgreSQL database
+- Redis cache
+- Redis Cluster
+- Elasticsearch
+- Prometheus (monitoring)
+- Grafana (dashboards)
+- Nginx (reverse proxy)
+- Celery worker
+- Flower (Celery monitoring)
+- Mailhog (email testing)
+
+4. **Run database migrations**
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run with SQLite (default)
-uvicorn app.main:app --reload
-
-# Or with PostgreSQL
-export DATABASE_URL="postgresql://user:password@localhost/saas_auth_db"
-uvicorn app.main:app --reload
+docker-compose exec app alembic upgrade head
 ```
 
-The API will be available at `http://localhost:8000`
+5. **Access the services**
+- API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+- Grafana: http://localhost:3001 (admin/admin)
+- Prometheus: http://localhost:9090
+- Flower: http://localhost:5555
+- Mailhog: http://localhost:8025
+
+### Manual Setup (Development)
+
+1. **Install Python dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+2. **Set up PostgreSQL**
+```bash
+# Create database
+createdb saas_auth_db
+
+# Run migrations
+alembic upgrade head
+```
+
+3. **Start Redis**
+```bash
+redis-server
+```
+
+4. **Start the application**
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### CLI Tool
+
+The project includes a CLI tool for management tasks:
+
+```bash
+# Initialize database
+python -m cli.main db init
+
+# Create a user
+python -m cli.main user create --email user@example.com --password secret123
+
+# List users
+python -m cli.main user list
+
+# Create feature flag
+python -m cli.main feature-flag create --name new_feature --percentage 50
+
+# View monitoring stats
+python -m cli.main monitoring stats
+
+# Run security audit
+python -m cli.main security audit
+```
 
 ## API Documentation
 
-### Authentication Endpoints
+### REST API
 
-#### Register User
-```http
-POST /auth/register
-Content-Type: application/json
+The REST API is documented with OpenAPI/Swagger and available at:
+- Interactive docs: http://localhost:8000/docs
+- JSON schema: http://localhost:8000/openapi.json
 
-{
-  "username": "john_doe",
-  "email": "john@example.com", 
-  "password": "secure_password"
+### GraphQL API
+
+The GraphQL endpoint is available at `/v1/graphql` with support for:
+- Queries: Fetch data
+- Mutations: Modify data
+- Subscriptions: Real-time updates via WebSocket
+
+Example GraphQL query:
+```graphql
+query {
+  me {
+    id
+    username
+    email
+    role
+  }
 }
 ```
 
-#### Login
-```http
-POST /auth/login
-Content-Type: application/x-www-form-urlencoded
+### Key Endpoints
 
-username=john_doe&password=secure_password
-```
+#### Authentication
+- `POST /v1/auth/register` - Register new user
+- `POST /v1/auth/login` - Login user
+- `POST /v1/auth/refresh` - Refresh access token
+- `POST /v1/auth/logout` - Logout user
+- `POST /v1/auth/2fa/enable` - Enable 2FA
+- `POST /v1/auth/oauth/{provider}` - OAuth login
 
-#### Refresh Token
-```http
-POST /auth/refresh
-Content-Type: application/json
+#### User Management
+- `GET /v1/users/me` - Get current user profile
+- `PUT /v1/users/me` - Update profile
+- `GET /v1/users/usage` - Get usage statistics
 
-{
-  "refresh_token": "your_refresh_token"
-}
-```
+#### API Keys
+- `POST /v1/api-keys` - Create API key
+- `GET /v1/api-keys` - List API keys
+- `DELETE /v1/api-keys/{id}` - Delete API key
 
-#### Get Current User
-```http
-GET /auth/me
-Authorization: Bearer <access_token>
-```
+#### Webhooks
+- `POST /v1/webhooks` - Create webhook
+- `GET /v1/webhooks` - List webhooks
+- `DELETE /v1/webhooks/{id}` - Delete webhook
 
-### User Endpoints
+#### Feature Flags
+- `POST /v1/feature-flags` - Create feature flag
+- `GET /v1/feature-flags` - List feature flags
+- `POST /v1/feature-flags/{name}/evaluate` - Evaluate flag
 
-#### Get Profile
-```http
-GET /users/profile
-Authorization: Bearer <access_token>
-```
+See [API_EXAMPLES.md](docs/API_EXAMPLES.md) for comprehensive examples.
 
-#### Get Usage Stats
-```http
-GET /users/usage
-Authorization: Bearer <access_token>
-```
+## Testing
 
-### Admin Endpoints (Admin access required)
-
-#### Get All Users
-```http
-GET /admin/users
-Authorization: Bearer <admin_token>
-```
-
-#### Get System Stats
-```http
-GET /admin/stats
-Authorization: Bearer <admin_token>
-```
-
-#### Suspend User
-```http
-PUT /admin/users/{user_id}/suspend
-Authorization: Bearer <admin_token>
-```
-
-##  Testing
-
-Run the comprehensive test suite:
+### Run Tests
 
 ```bash
-# Install test dependencies
-pip install pytest pytest-asyncio httpx
-
 # Run all tests
 pytest
 
-# Run specific test file
-pytest tests/test_auth.py
-
 # Run with coverage
-pytest --cov=app tests/
+pytest --cov=app --cov-report=html
+
+# Run specific test file
+pytest tests/unit/test_feature_flags.py
+
+# Run integration tests
+pytest tests/integration/
+
+# Run with verbose output
+pytest -v
 ```
 
-##  Configuration
+### Load Testing
+
+```bash
+# Run load tests
+python benchmarks/load_test.py --users 100 --duration 60
+```
+
+### Security Scanning
+
+```bash
+# Run security scan
+python scripts/security_scan.py
+```
+
+## Configuration
 
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `DATABASE_URL` | Database connection string | `sqlite:///./saas_auth.db` |
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://...` |
+| `REDIS_URL` | Redis connection string | `redis://localhost:6379` |
+| `ELASTICSEARCH_HOST` | Elasticsearch host | `http://localhost:9200` |
 | `SECRET_KEY` | JWT signing key | Change in production! |
-| `REDIS_URL` | Redis connection for rate limiting | `redis://localhost:6379` |
-| `STRIPE_API_KEY` | Stripe test API key | Optional |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime | `30` |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token lifetime | `7` |
+| `STRIPE_API_KEY` | Stripe API key | Optional |
+| `AWS_ACCESS_KEY_ID` | AWS access key | Optional |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key | Optional |
+| `SMTP_HOST` | SMTP server | Optional |
+| `SENDGRID_API_KEY` | SendGrid API key | Optional |
+| `MAILGUN_API_KEY` | Mailgun API key | Optional |
 
 ### Rate Limits by Plan
 
 | Plan | Requests/Minute | Monthly Quota |
 |------|----------------|---------------|
-| FREE | 60 | 1,000 |
-| PRO | 300 | 10,000 |
+| FREE | 100 | 10,000 |
+| PRO | 1,000 | 100,000 |
+| ENTERPRISE | Custom | Custom |
 
-##  Rate Limiting
+## Monitoring
 
-The system implements two-tier rate limiting:
+### Prometheus Metrics
 
-1. **Per-minute limits**: Enforced via Redis (fallback to in-memory)
-2. **Monthly quotas**: Tracked in database, resets monthly
+The application exposes Prometheus metrics at `/metrics`:
+- Request rate and latency
+- Error rates
+- Database connection pool
+- Redis operations
+- Custom business metrics
 
-When limits are exceeded:
-- **429 Too Many Requests**: Per-minute limit exceeded
-- **403 Forbidden**: Monthly quota exceeded
+### Grafana Dashboards
 
-##  Billing Simulation
+Pre-configured dashboards include:
+- API Overview
+- Database Performance
+- Redis Performance
+- System Resources
+- Security Events
 
-The system simulates SaaS billing with:
+### Alerting
 
-- **Free Plan**: 60 requests/minute, 1,000 requests/month
-- **Pro Plan**: 300 requests/minute, 10,000 requests/month
+Prometheus alert rules are configured in `prometheus/alerts.yml`:
+- High API latency
+- High error rates
+- Database connection issues
+- Redis memory usage
+- Security events
 
-Stripe integration is in test mode - no real charges are made.
+## Deployment
 
-##  Security Features
+### Kubernetes
+
+Deploy to Kubernetes using the provided manifests:
+
+```bash
+kubectl apply -f kubernetes/deployment.yaml
+```
+
+### Terraform
+
+Provision AWS infrastructure:
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+### CI/CD
+
+The GitHub Actions workflow automatically:
+- Runs linting and security scans
+- Executes tests
+- Builds Docker images
+- Deploys to staging/production
+
+## SDKs
+
+### JavaScript
+
+```bash
+npm install @saas-auth-api/sdk
+```
+
+```javascript
+import { AuthClient } from '@saas-auth-api/sdk';
+
+const client = new AuthClient({
+  baseURL: 'https://api.saas-auth-api.com/v1'
+});
+
+await client.login('user@example.com', 'password');
+```
+
+### Python
+
+```bash
+pip install saas-auth-api
+```
+
+```python
+from saas_auth_api import AuthClient
+
+client = AuthClient(base_url='https://api.saas-auth-api.com/v1')
+client.login('user@example.com', 'password')
+```
+
+### React Native
+
+See `sdk/react-native/AuthClient.ts`
+
+### Flutter
+
+See `sdk/flutter/auth_client.dart`
+
+## Documentation
+
+- [Architecture Documentation](docs/ARCHITECTURE.md)
+- [Development Guide](docs/DEVELOPMENT.md)
+- [API Examples](docs/API_EXAMPLES.md)
+
+## Security Features
 
 - **JWT Authentication**: Access + refresh token pattern
 - **Password Hashing**: bcrypt with salt
-- **Role-Based Access**: USER vs ADMIN permissions
-- **Rate Limiting**: Protection against abuse
-- **Input Validation**: Pydantic models for all inputs
-- **CORS Configurable**: Secure cross-origin requests
+- **Role-Based Access**: USER, ADMIN, MODERATOR roles
+- **Rate Limiting**: Multi-tier protection
+- **Audit Logging**: Comprehensive security event tracking
+- **Fraud Detection**: ML-based risk scoring
+- **GDPR/CCPA**: Consent management and data export
 
-##  Usage Tracking
-
-Every API call is logged with:
-- User ID
-- Endpoint and method
-- Response status code
-- Response time
-- Timestamp
-
-Admins can view:
-- Per-user usage statistics
-- System-wide metrics
-- Most-used endpoints
-- Response time analytics
-
-##  Docker Deployment
-
-### Production Dockerfile
-Optimized multi-stage build with:
-- Non-root user execution
-- Minimal attack surface
-- Efficient layer caching
-
-### Docker Compose
-Complete stack with:
-- Application container
-- PostgreSQL database
-- Redis for rate limiting
-- Persistent volumes
-
-
-##  Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Write tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
-##  License
+## License
 
 This project is licensed under the MIT License.
 
-##  Default Admin Account
+## Support
 
-For testing, a default admin account is created:
-- **Username**: `admin`
-- **Password**: `admin123`
-- **Email**: `admin@example.com`
-
- **Change this in production!**
+- Documentation: https://docs.saas-auth-api.com
+- Support Email: support@saas-auth-api.com
+- Status Page: https://status.saas-auth-api.com
+- GitHub Issues: https://github.com/saas-auth-api/issues
 
 ---
 
-**Built to demonstrate production-ready backend engineering skills**
+**Built to demonstrate enterprise-grade backend engineering skills**
