@@ -4,8 +4,14 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 from app.core.config import settings
+import hashlib
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_token(token: str) -> str:
+    """Hash a token using SHA-256."""
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

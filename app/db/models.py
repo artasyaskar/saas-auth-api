@@ -617,6 +617,7 @@ class APIKey(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     key = Column(String(64), nullable=False, unique=True, index=True)
+    key_hash = Column(String(128), nullable=True)
     name = Column(String(100), nullable=False)
     scopes = Column(JSON, nullable=True)
     rate_limit = Column(Integer, nullable=True)
