@@ -25,6 +25,7 @@ def db_session():
 @pytest.fixture
 def rate_limiter_service(db_session):
     """Rate limiter config service fixture"""
+    db_session.query = MagicMock(return_value=MagicMock(filter=MagicMock(return_value=MagicMock(all=MagicMock(return_value=[])))))
     return RateLimiterConfigService(db_session)
 
 
