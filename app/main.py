@@ -199,6 +199,10 @@ app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 from app.api.routes import oauth
 app.include_router(oauth.router, prefix="/auth/oauth", tags=["oauth"])
 
+# Import and include 2FA routes
+from app.api.routes import two_factor
+app.include_router(two_factor.router, prefix="/auth/2fa", tags=["two-factor-authentication"])
+
 
 @app.get("/")
 async def root():
