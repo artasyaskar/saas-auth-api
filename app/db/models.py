@@ -51,6 +51,7 @@ class UserRole(enum.Enum):
 class SubscriptionPlan(enum.Enum):
     FREE = "FREE"
     PRO = "PRO"
+    ENTERPRISE = "ENTERPRISE"
 
 
 class User(Base):

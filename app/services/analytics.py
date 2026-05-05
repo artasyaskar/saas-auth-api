@@ -117,14 +117,14 @@ class AnalyticsService:
         
         return {
             'period_days': days,
-            'total_new_users': sum(d['count'] for d in daily_signups),
-            'avg_daily_signups': sum(d['count'] for d in daily_signups) / days,
+            'total_new_users': sum(d[1] for d in daily_signups),
+            'avg_daily_signups': (sum(d[1] for d in daily_signups) / days) if daily_signups else 0,
             'daily_signups': [
-                {'date': str(d.date), 'count': d.count} 
+                {'date': str(d[0]), 'count': d[1]} 
                 for d in daily_signups
             ],
             'daily_active_users': [
-                {'date': str(d.date), 'count': d.count} 
+                {'date': str(d[0]), 'count': d[1]} 
                 for d in daily_active
             ],
             'retention_data': retention_data
@@ -231,12 +231,12 @@ class AnalyticsService:
         thirty_days_ago = datetime.utcnow() - timedelta(days=30)
         upgrades = self.db.query(AuditLog).filter(
             AuditLog.action == 'subscription_upgraded',
-            AuditLog.timestamp >= thirty_days_ago
+            AuditLog.created_at >= thirty_days_ago
         ).count()
         
         downgrades = self.db.query(AuditLog).filter(
             AuditLog.action == 'subscription_downgraded',
-            AuditLog.timestamp >= thirty_days_ago
+            AuditLog.created_at >= thirty_days_ago
         ).count()
         
         return {
@@ -333,7 +333,7 @@ class AnalyticsService:
         # Failed login attempts
         failed_logins = self.db.query(AuditLog).filter(
             AuditLog.action == 'login_failed',
-            AuditLog.timestamp >= start_date
+            AuditLog.created_at >= start_date
         ).count()
         
         # Password resets
@@ -357,7 +357,7 @@ class AnalyticsService:
             func.count(AuditLog.id).label('failed_attempts')
         ).filter(
             AuditLog.action == 'login_failed',
-            AuditLog.timestamp >= start_date,
+            AuditLog.created_at >= start_date,
             AuditLog.ip_address.isnot(None)
         ).group_by(
             AuditLog.ip_address
@@ -390,13 +390,13 @@ class AnalyticsService:
         score = 100
         
         # Deduct for failed logins
-        score -= min(failed_logins // 10, 20)
+        score -= min(failed_logins * 0.5, 40)
         
         # Deduct for suspicious IPs
-        score -= min(suspicious_ips * 5, 30)
+        score -= min(suspicious_ips * 10, 35)
         
         # Deduct for password resets (some are normal)
-        score -= min(password_resets // 5, 10)
+        score -= min(password_resets * 0.3, 25)
         
         return max(0, score)
     
