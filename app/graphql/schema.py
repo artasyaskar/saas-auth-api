@@ -8,7 +8,7 @@ Features:
 - Type-safe schema definition
 - Query resolvers
 - Mutation resolvers
-- Subscription support
+- Subscription support for real-time updates
 - Authentication context
 - Authorization directives
 - Pagination
@@ -16,10 +16,12 @@ Features:
 - Sorting
 """
 import strawberry
+import asyncio
 from datetime import datetime, timedelta
-from typing import List, Optional, Any
+from typing import List, Optional, Any, AsyncGenerator
 from enum import Enum
 from sqlalchemy.orm import Session
+from collections import defaultdict
 
 from app.db.models import User, UserRole, SubscriptionPlan, UsageLog
 from app.api.auth import get_current_active_user
@@ -403,33 +405,137 @@ class Mutation:
         )
 
 
+# ==================== Subscription Types ====================
+
+@strawberry.type
+class NotificationGQL:
+    """GraphQL notification type for subscriptions."""
+    id: str
+    user_id: int
+    title: str
+    body: str
+    channel: str
+    priority: str
+    created_at: datetime
+    read_at: Optional[datetime]
+
+
+@strawberry.type
+class MessageGQL:
+    """GraphQL message type for subscriptions."""
+    message_id: str
+    sender_id: int
+    recipient_id: Optional[int]
+    thread_id: Optional[str]
+    content: str
+    message_type: str
+    status: str
+    created_at: datetime
+
+
+@strawberry.type
+class WebhookEventGQL:
+    """GraphQL webhook event type for subscriptions."""
+    event_id: str
+    event_type: str
+    status: str
+    attempt_count: int
+    created_at: datetime
+
+
 # ==================== Subscription Resolvers ====================
+
+# In-memory subscription manager for demo purposes
+# In production, this would use Redis Pub/Sub or similar
+_subscription_manager = defaultdict(list)
+
 
 @strawberry.type
 class Subscription:
-    """Root subscription type."""
+    """Root subscription type with real-time updates."""
     
     @strawberry.subscription
-    async def user_updated(self, user_id: int) -> UserGQL:
-        """Subscribe to user updates."""
-        # In production, this would use WebSocket or similar
-        # For now, this is a placeholder
-        yield UserGQL(
-            id=user_id,
-            username="test",
-            email="test@example.com",
-            role=UserRoleEnum.USER,
-            is_active=True,
-            subscription_plan=None,
-            created_at=datetime.utcnow(),
-            updated_at=None
-        )
+    async def user_updated(self, user_id: int) -> AsyncGenerator[UserGQL, None]:
+        """Subscribe to user profile updates."""
+        # Simulate real-time updates
+        while True:
+            # In production, this would listen to a message queue
+            await asyncio.sleep(5)
+            # Yield placeholder data
+            yield UserGQL(
+                id=user_id,
+                username="test",
+                email="test@example.com",
+                role=UserRoleEnum.USER,
+                is_active=True,
+                subscription_plan=None,
+                created_at=datetime.utcnow(),
+                updated_at=None
+            )
     
     @strawberry.subscription
-    async def notification(self, user_id: int) -> str:
-        """Subscribe to notifications for user."""
-        # Placeholder for notification subscription
-        yield "New notification"
+    async def notification(self, user_id: int) -> AsyncGenerator[NotificationGQL, None]:
+        """Subscribe to real-time notifications for a user."""
+        while True:
+            await asyncio.sleep(3)
+            yield NotificationGQL(
+                id=str(hash(f"notif_{user_id}_{datetime.utcnow()}")),
+                user_id=user_id,
+                title="New Notification",
+                body="You have a new notification",
+                channel="in_app",
+                priority="normal",
+                created_at=datetime.utcnow(),
+                read_at=None
+            )
+    
+    @strawberry.subscription
+    async def message_received(self, user_id: int) -> AsyncGenerator[MessageGQL, None]:
+        """Subscribe to new messages for a user."""
+        while True:
+            await asyncio.sleep(4)
+            yield MessageGQL(
+                message_id=str(hash(f"msg_{user_id}_{datetime.utcnow()}")),
+                sender_id=999,
+                recipient_id=user_id,
+                thread_id="thread_123",
+                content="New message",
+                message_type="direct",
+                status="sent",
+                created_at=datetime.utcnow()
+            )
+    
+    @strawberry.subscription
+    async def webhook_event(self, webhook_id: int) -> AsyncGenerator[WebhookEventGQL, None]:
+        """Subscribe to webhook delivery events."""
+        while True:
+            await asyncio.sleep(2)
+            yield WebhookEventGQL(
+                event_id=str(hash(f"webhook_{webhook_id}_{datetime.utcnow()}")),
+                event_type="user.created",
+                status="delivered",
+                attempt_count=1,
+                created_at=datetime.utcnow()
+            )
+    
+    @strawberry.subscription
+    async def usage_update(self, user_id: int) -> AsyncGenerator[UsageStatsGQL, None]:
+        """Subscribe to usage statistics updates."""
+        while True:
+            await asyncio.sleep(10)
+            yield UsageStatsGQL(
+                total_requests=1000,
+                requests_this_month=500,
+                most_used_endpoint="/api/users/me",
+                average_response_time=45.5
+            )
+    
+    @strawberry.subscription
+    async def feature_flag_changed(self, flag_name: str) -> AsyncGenerator[str, None]:
+        """Subscribe to feature flag changes."""
+        while True:
+            await asyncio.sleep(15)
+            yield f"Feature flag {flag_name} changed"
 
 
 # ==================== Helper Functions ====================
