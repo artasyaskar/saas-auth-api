@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Any, Callable
 from enum import Enum
 import requests
 from sqlalchemy.orm import Session
-from app.db.models import WebhookSubscription, WebhookDelivery, User
+from app.db.models import Webhook as WebhookSubscription, WebhookDelivery, User
 from app.core.config import settings
 
 

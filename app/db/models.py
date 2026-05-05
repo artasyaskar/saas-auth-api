@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum, ForeignKey, Text, Float, JSON, LargeBinary
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Enum, ForeignKey, Text, Float, JSON, LargeBinary, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -99,6 +99,92 @@ class Subscription(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     user = relationship("User", back_populates="subscriptions")
+
+
+class Invoice(Base):
+    """Billing invoice records."""
+    __tablename__ = "invoices"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=True)
+    stripe_invoice_id = Column(String, nullable=True, unique=True)
+    amount = Column(Numeric(10, 2), nullable=False)
+    currency = Column(String(3), default="USD", nullable=False)
+    status = Column(String(20), default="pending", nullable=False)
+    due_date = Column(DateTime(timezone=True), nullable=True)
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user = relationship("User")
+    subscription = relationship("Subscription")
+
+
+class PaymentMethod(Base):
+    """User payment methods."""
+    __tablename__ = "payment_methods"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    stripe_payment_method_id = Column(String, nullable=True)
+    type = Column(String(20), nullable=False)  # card, bank_account
+    is_default = Column(Boolean, default=False, nullable=False)
+    last_four = Column(String(4), nullable=True)
+    expiry_month = Column(Integer, nullable=True)
+    expiry_year = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user = relationship("User")
+
+
+class Coupon(Base):
+    """Discount coupons."""
+    __tablename__ = "coupons"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(50), unique=True, nullable=False, index=True)
+    discount_type = Column(String(20), nullable=False)  # percentage, fixed
+    discount_value = Column(Numeric(10, 2), nullable=False)
+    max_uses = Column(Integer, nullable=True)
+    uses_count = Column(Integer, default=0, nullable=False)
+    valid_from = Column(DateTime(timezone=True), nullable=False)
+    valid_until = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class UsageRecord(Base):
+    """Usage tracking for billing."""
+    __tablename__ = "usage_records"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("subscriptions.id"), nullable=True)
+    metric_name = Column(String(50), nullable=False)
+    quantity = Column(Integer, default=0, nullable=False)
+    period_start = Column(DateTime(timezone=True), nullable=False)
+    period_end = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user = relationship("User")
+    subscription = relationship("Subscription")
+
+
+class BillingAccount(Base):
+    """Billing account information."""
+    __tablename__ = "billing_accounts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    stripe_customer_id = Column(String, nullable=True, unique=True)
+    balance = Column(Numeric(10, 2), default=0, nullable=False)
+    currency = Column(String(3), default="USD", nullable=False)
+    billing_email = Column(String(255), nullable=True)
+    billing_address = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    user = relationship("User")
 
 
 class RateLimit(Base):
@@ -231,7 +317,7 @@ class WebhookEvent(Base):
     event_id = Column(String(64), nullable=False, unique=True)
     data = Column(JSON, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    metadata = Column(JSON, nullable=True)
+    event_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -264,7 +350,7 @@ class EmailLog(Base):
     status = Column(String(20), default="pending", nullable=False)
     provider = Column(String(50), nullable=False)
     template_id = Column(String(100), nullable=True)
-    metadata = Column(JSON, nullable=True)
+    email_metadata = Column(JSON, nullable=True)
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     sent_at = Column(DateTime(timezone=True), nullable=True)
@@ -387,7 +473,7 @@ class Message(Base):
     content = Column(Text, nullable=False)
     message_type = Column(String(20), nullable=False)
     status = Column(String(20), default="sent", nullable=False)
-    metadata = Column(JSON, nullable=True)
+    message_metadata = Column(JSON, nullable=True)
     attachments = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     read_at = Column(DateTime(timezone=True), nullable=True)
@@ -490,7 +576,7 @@ class ConsentRecord(Base):
     status = Column(String(20), nullable=False)
     granted_at = Column(DateTime(timezone=True), nullable=False)
     granted_from = Column(String(255), nullable=False)
-    metadata = Column(JSON, nullable=True)
+    consent_metadata = Column(JSON, nullable=True)
     withdrawn_at = Column(DateTime(timezone=True), nullable=True)
     withdrawal_reason = Column(Text, nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=True)

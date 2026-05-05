@@ -3,7 +3,7 @@ Tests for API key management.
 """
 import pytest
 from datetime import datetime, timedelta
-from app.db.models import ApiKey
+from app.db.models import APIKey as ApiKey
 
 
 class TestApiKeyCreation:

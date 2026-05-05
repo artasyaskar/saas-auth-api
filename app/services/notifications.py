@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from enum import Enum
 from sqlalchemy.orm import Session
-from app.db.models import User, UserRole, NotificationLog
+from app.db.models import User, UserRole, Notification as NotificationLog
 from app.services.email import EmailService
 from app.services.background_tasks import BackgroundTaskService
 
