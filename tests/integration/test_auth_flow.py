@@ -15,23 +15,40 @@ from httpx import Client
 from datetime import datetime, timedelta
 
 
+def register_and_login(client: Client, username: str, email: str, password: str):
+    """Helper to register a user and login to get tokens."""
+    # Register user
+    register_response = client.post(
+        "/auth/register",
+        json={
+            "username": username,
+            "email": email,
+            "password": password
+        }
+    )
+    assert register_response.status_code == 200
+    
+    # Login with form data (OAuth2 expects form, not JSON)
+    login_response = client.post(
+        "/auth/login",
+        data={
+            "username": username,
+            "password": password
+        }
+    )
+    assert login_response.status_code == 200
+    return login_response.json()
+
+
 class TestRegistrationFlow:
     """Integration tests for user registration flow."""
     
     def test_complete_registration_flow(self, client: Client):
         """Test complete registration with email verification."""
-        # Step 1: Register user
-        register_response = client.post(
-            "/auth/register",
-            json={
-                "username": "integration_user",
-                "email": "integration@example.com",
-                "password": "SecurePass123!"
-            }
+        # Register and login to get tokens
+        data = register_and_login(
+            client, "integration_user", "integration@example.com", "SecurePass123!"
         )
-        
-        assert register_response.status_code == 200
-        data = register_response.json()
         assert "access_token" in data
         assert "refresh_token" in data
         
@@ -97,10 +114,10 @@ class TestLoginFlow:
             }
         )
         
-        # Login
+        # Login with form data
         login_response = client.post(
             "/auth/login",
-            json={
+            data={
                 "username": "login_user",
                 "password": "LoginPass123!"
             }
@@ -142,7 +159,7 @@ class TestLoginFlow:
         """Test login with invalid credentials fails."""
         response = client.post(
             "/auth/login",
-            json={
+            data={
                 "username": "nonexistent",
                 "password": "wrongpassword"
             }
@@ -156,17 +173,11 @@ class TestLogoutFlow:
     
     def test_complete_logout_flow(self, client: Client):
         """Test complete logout flow with token blacklisting."""
-        # Register and login
-        register_response = client.post(
-            "/auth/register",
-            json={
-                "username": "logout_user",
-                "email": "logout@example.com",
-                "password": "LogoutPass123!"
-            }
+        # Register and login to get tokens
+        data = register_and_login(
+            client, "logout_user", "logout@example.com", "LogoutPass123!"
         )
-        
-        access_token = register_response.json()["access_token"]
+        access_token = data["access_token"]
         
         # Logout
         logout_response = client.post(
@@ -259,17 +270,11 @@ class TestTwoFactorFlow:
     
     def test_complete_2fa_flow(self, client: Client):
         """Test complete 2FA setup and verification flow."""
-        # Register user
-        register_response = client.post(
-            "/auth/register",
-            json={
-                "username": "2fa_user",
-                "email": "2fa@example.com",
-                "password": "TwoFactorPass123!"
-            }
+        # Register and login to get tokens
+        data = register_and_login(
+            client, "2fa_user", "2fa@example.com", "TwoFactorPass123!"
         )
-        
-        access_token = register_response.json()["access_token"]
+        access_token = data["access_token"]
         
         # Setup 2FA
         setup_response = client.post(
@@ -308,10 +313,10 @@ class TestSessionManagement:
             }
         )
         
-        # Login from device 1
+        # Login from device 1 with form data
         device1_response = client.post(
             "/auth/login",
-            json={
+            data={
                 "username": "multi_device_user",
                 "password": "MultiPass123!"
             }
@@ -319,10 +324,10 @@ class TestSessionManagement:
         
         device1_token = device1_response.json()["access_token"]
         
-        # Login from device 2
+        # Login from device 2 with form data
         device2_response = client.post(
             "/auth/login",
-            json={
+            data={
                 "username": "multi_device_user",
                 "password": "MultiPass123!"
             }
@@ -356,10 +361,10 @@ class TestSessionManagement:
             }
         )
         
-        # Login from device 1
+        # Login from device 1 with form data
         device1_response = client.post(
             "/auth/login",
-            json={
+            data={
                 "username": "logout_all_user",
                 "password": "LogoutAllPass123!"
             }
@@ -367,10 +372,10 @@ class TestSessionManagement:
         
         device1_token = device1_response.json()["access_token"]
         
-        # Login from device 2
+        # Login from device 2 with form data
         device2_response = client.post(
             "/auth/login",
-            json={
+            data={
                 "username": "logout_all_user",
                 "password": "LogoutAllPass123!"
             }
@@ -406,18 +411,12 @@ class TestTokenExpiry:
     
     def test_expired_token_refresh(self, client: Client):
         """Test automatic token refresh on expiry."""
-        # Register and login
-        register_response = client.post(
-            "/auth/register",
-            json={
-                "username": "expiry_user",
-                "email": "expiry@example.com",
-                "password": "ExpiryPass123!"
-            }
+        # Register and login to get tokens
+        data = register_and_login(
+            client, "expiry_user", "expiry@example.com", "ExpiryPass123!"
         )
-        
-        access_token = register_response.json()["access_token"]
-        refresh_token = register_response.json()["refresh_token"]
+        access_token = data["access_token"]
+        refresh_token = data["refresh_token"]
         
         # Simulate token expiry (in real test, would wait or mock time)
         # For now, test refresh endpoint directly
@@ -444,17 +443,11 @@ class TestConcurrentRequests:
     
     def test_concurrent_authenticated_requests(self, client: Client):
         """Test multiple concurrent authenticated requests."""
-        # Register and login
-        register_response = client.post(
-            "/auth/register",
-            json={
-                "username": "concurrent_user",
-                "email": "concurrent@example.com",
-                "password": "ConcurrentPass123!"
-            }
+        # Register and login to get tokens
+        data = register_and_login(
+            client, "concurrent_user", "concurrent@example.com", "ConcurrentPass123!"
         )
-        
-        access_token = register_response.json()["access_token"]
+        access_token = data["access_token"]
         
         # Make concurrent requests
         tasks = []
