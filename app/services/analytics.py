@@ -1,12 +1,27 @@
 """
+Enterprise Analytics and Business Intelligence Service
+
 Comprehensive analytics service for tracking user behavior,
-system metrics, and business intelligence.
+system metrics, revenue analytics, and business intelligence.
+
+Features:
+- User acquisition and retention analytics
+- Cohort analysis
+- Revenue metrics (MRR, ARR, churn)
+- API usage patterns
+- Security event tracking
+- Performance metrics
+- Funnel analysis
+- Real-time dashboards
+- Custom report generation
+- Data export
+- Predictive analytics
 """
 from datetime import datetime, timedelta, date
 from typing import Dict, List, Optional, Tuple, Any
 from collections import defaultdict
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
+from sqlalchemy import func, and_, or_, desc, case
 from app.db.models import (
     User, UsageLog, UserRole, SubscriptionPlan,
     TokenBlacklist, PasswordResetToken, AuditLog
@@ -17,7 +32,7 @@ import json
 
 class AnalyticsService:
     """
-    Advanced analytics service for SaaS metrics and insights.
+    Enterprise-grade analytics service for SaaS metrics and insights.
     
     Tracks:
     - User acquisition and retention
@@ -25,6 +40,9 @@ class AnalyticsService:
     - API usage patterns
     - Security events
     - Performance metrics
+    - Funnel analysis
+    - Cohort analysis
+    - Predictive analytics
     """
     
     def __init__(self, db: Session):
@@ -381,10 +399,296 @@ class AnalyticsService:
         score -= min(password_resets // 5, 10)
         
         return max(0, score)
+    
+    # ==================== FUNNEL ANALYTICS ====================
+    
+    def get_conversion_funnel(
+        self,
+        days: int = 30
+    ) -> Dict[str, Any]:
+        """
+        Analyze user conversion funnel.
+        
+        Args:
+            days: Number of days to analyze
+        
+        Returns:
+            Funnel metrics for each stage
+        """
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        # Stage 1: Visits (assuming we track page views)
+        visits = self.db.query(UsageLog).filter(
+            UsageLog.timestamp >= start_date,
+            UsageLog.endpoint == '/'
+        ).count()
+        
+        # Stage 2: Signups
+        signups = self.db.query(User).filter(
+            User.created_at >= start_date
+        ).count()
+        
+        # Stage 3: Email verified
+        verified = self.db.query(User).filter(
+            User.created_at >= start_date,
+            User.email_verified == True
+        ).count()
+        
+        # Stage 4: Active users (made API call)
+        active = self.db.query(func.distinct(UsageLog.user_id)).filter(
+            UsageLog.timestamp >= start_date
+        ).count()
+        
+        # Stage 5: Paid users
+        paid = self.db.query(User).filter(
+            User.created_at >= start_date,
+            User.subscription_plan.in_([SubscriptionPlan.PRO, SubscriptionPlan.ENTERPRISE])
+        ).count()
+        
+        return {
+            'period_days': days,
+            'funnel': {
+                'visits': visits,
+                'signups': signups,
+                'verified': verified,
+                'active': active,
+                'paid': paid
+            },
+            'conversion_rates': {
+                'visit_to_signup': (signups / visits * 100) if visits > 0 else 0,
+                'signup_to_verified': (verified / signups * 100) if signups > 0 else 0,
+                'verified_to_active': (active / verified * 100) if verified > 0 else 0,
+                'active_to_paid': (paid / active * 100) if active > 0 else 0,
+                'overall': (paid / visits * 100) if visits > 0 else 0
+            }
+        }
+    
+    # ==================== REAL-TIME ANALYTICS ====================
+    
+    def get_realtime_metrics(self) -> Dict[str, Any]:
+        """Get real-time system metrics."""
+        now = datetime.utcnow()
+        last_hour = now - timedelta(hours=1)
+        last_minute = now - timedelta(minutes=1)
+        
+        # Requests in last minute
+        requests_last_minute = self.db.query(UsageLog).filter(
+            UsageLog.timestamp >= last_minute
+        ).count()
+        
+        # Requests in last hour
+        requests_last_hour = self.db.query(UsageLog).filter(
+            UsageLog.timestamp >= last_hour
+        ).count()
+        
+        # Active users in last 5 minutes
+        last_5_min = now - timedelta(minutes=5)
+        active_users = self.db.query(func.distinct(UsageLog.user_id)).filter(
+            UsageLog.timestamp >= last_5_min
+        ).count()
+        
+        # Error rate in last hour
+        total_last_hour = self.db.query(UsageLog).filter(
+            UsageLog.timestamp >= last_hour
+        ).count()
+        errors_last_hour = self.db.query(UsageLog).filter(
+            UsageLog.timestamp >= last_hour,
+            UsageLog.status_code >= 400
+        ).count()
+        
+        error_rate = (errors_last_hour / total_last_hour * 100) if total_last_hour > 0 else 0
+        
+        # Average response time in last hour
+        avg_response = self.db.query(func.avg(UsageLog.response_time_ms)).filter(
+            UsageLog.timestamp >= last_hour
+        ).scalar() or 0
+        
+        return {
+            'timestamp': now.isoformat(),
+            'requests_per_minute': requests_last_minute,
+            'requests_per_hour': requests_last_hour,
+            'active_users_5m': active_users,
+            'error_rate_percent': error_rate,
+            'avg_response_time_ms': float(avg_response)
+        }
+    
+    # ==================== CUSTOM REPORTS ====================
+    
+    def generate_custom_report(
+        self,
+        metrics: List[str],
+        start_date: datetime,
+        end_date: datetime,
+        group_by: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Generate custom analytics report.
+        
+        Args:
+            metrics: List of metrics to include
+            start_date: Report start date
+            end_date: Report end date
+            group_by: Group by field (day, week, month)
+        
+        Returns:
+            Custom report data
+        """
+        report = {
+            'period': {
+                'start': start_date.isoformat(),
+                'end': end_date.isoformat()
+            },
+            'metrics': {}
+        }
+        
+        for metric in metrics:
+            if metric == 'user_growth':
+                report['metrics']['user_growth'] = self.get_user_growth_metrics(
+                    days=(end_date - start_date).days
+                )
+            elif metric == 'revenue':
+                report['metrics']['revenue'] = self.get_revenue_metrics()
+            elif metric == 'endpoint_popularity':
+                report['metrics']['endpoint_popularity'] = self.get_endpoint_popularity(
+                    days=(end_date - start_date).days
+                )
+            elif metric == 'security':
+                report['metrics']['security'] = self.get_security_events_summary(
+                    days=(end_date - start_date).days
+                )
+            elif metric == 'funnel':
+                report['metrics']['funnel'] = self.get_conversion_funnel(
+                    days=(end_date - start_date).days
+                )
+        
+        return report
+    
+    # ==================== PREDICTIVE ANALYTICS ====================
+    
+    def predict_churn_risk(self, user_id: int) -> Dict[str, Any]:
+        """
+        Predict churn risk for a user.
+        
+        Args:
+            user_id: User ID
+        
+        Returns:
+            Churn risk assessment
+        """
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {'error': 'User not found'}
+        
+        # Get user activity
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        recent_activity = self.db.query(UsageLog).filter(
+            UsageLog.user_id == user_id,
+            UsageLog.timestamp >= thirty_days_ago
+        ).count()
+        
+        # Get last activity
+        last_activity = self.db.query(func.max(UsageLog.timestamp)).filter(
+            UsageLog.user_id == user_id
+        ).scalar()
+        
+        days_since_last_activity = (datetime.utcnow() - last_activity).days if last_activity else 999
+        
+        # Calculate risk factors
+        risk_score = 0
+        risk_factors = []
+        
+        # Factor 1: Low activity
+        if recent_activity < 10:
+            risk_score += 30
+            risk_factors.append('Low activity')
+        
+        # Factor 2: Inactive for long time
+        if days_since_last_activity > 14:
+            risk_score += 40
+            risk_factors.append('Inactive for 14+ days')
+        
+        # Factor 3: Free plan
+        if user.subscription_plan == SubscriptionPlan.FREE:
+            risk_score += 20
+            risk_factors.append('Free plan')
+        
+        # Factor 4: No 2FA
+        # (would need to check 2FA status)
+        
+        risk_level = 'low' if risk_score < 30 else 'medium' if risk_score < 60 else 'high'
+        
+        return {
+            'user_id': user_id,
+            'risk_score': risk_score,
+            'risk_level': risk_level,
+            'risk_factors': risk_factors,
+            'recent_activity': recent_activity,
+            'days_since_last_activity': days_since_last_activity
+        }
+    
+    # ==================== DATA EXPORT ====================
+    
+    def export_analytics_data(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        format: str = 'json'
+    ) -> str:
+        """
+        Export analytics data for a date range.
+        
+        Args:
+            start_date: Start date
+            end_date: End date
+            format: Export format (json, csv)
+        
+        Returns:
+            Exported data as string
+        """
+        # Get all usage logs for the period
+        logs = self.db.query(UsageLog).filter(
+            UsageLog.timestamp >= start_date,
+            UsageLog.timestamp <= end_date
+        ).all()
+        
+        if format == 'json':
+            return json.dumps([
+                {
+                    'user_id': log.user_id,
+                    'endpoint': log.endpoint,
+                    'method': log.method,
+                    'status_code': log.status_code,
+                    'response_time_ms': log.response_time_ms,
+                    'timestamp': log.timestamp.isoformat()
+                }
+                for log in logs
+            ], indent=2)
+        elif format == 'csv':
+            import csv
+            import io
+            
+            output = io.StringIO()
+            writer = csv.DictWriter(output, fieldnames=[
+                'user_id', 'endpoint', 'method', 'status_code',
+                'response_time_ms', 'timestamp'
+            ])
+            writer.writeheader()
+            
+            for log in logs:
+                writer.writerow({
+                    'user_id': log.user_id,
+                    'endpoint': log.endpoint,
+                    'method': log.method,
+                    'status_code': log.status_code,
+                    'response_time_ms': log.response_time_ms,
+                    'timestamp': log.timestamp.isoformat()
+                })
+            
+            return output.getvalue()
+        else:
+            raise ValueError(f"Unsupported format: {format}")
 
 
-# Helper function for case expression
-def case(*conditions, else_=None):
-    """Build a SQL CASE expression."""
-    from sqlalchemy import case as sql_case
-    return sql_case(*conditions, else_=else_)
+def get_analytics_service(db: Session):
+    """Dependency to get analytics service."""
+    return AnalyticsService(db)
