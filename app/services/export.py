@@ -254,7 +254,8 @@ class DataExportService:
         writer.writerow(["Profile", json.dumps(data["profile"])])
         usage_count = len(data["usage_history"]) if isinstance(data["usage_history"], list) else 0
         writer.writerow(["Usage Count", usage_count])
-        writer.writerow(["Security Events", json.dumps(data["security_events"])])
+        security_events = data.get("security_events", [])
+        writer.writerow(["Security Events", json.dumps(security_events)])
         
         return {
             "format": "csv",
