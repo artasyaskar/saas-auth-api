@@ -215,6 +215,10 @@ app.include_router(organizations.router, tags=["organizations"])
 from app.api.routes import scim
 app.include_router(scim.router, tags=["scim"])
 
+# Import and include SAML routes
+from app.api.routes import saml
+app.include_router(saml.router, tags=["saml"])
+
 
 @app.get("/")
 async def root():
