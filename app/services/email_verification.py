@@ -523,7 +523,7 @@ class EmailVerificationService:
     
     def _is_valid_email(self, email: str) -> bool:
         """
-        Validate email format.
+        Validate email format using centralized validation utilities.
         
         Args:
             email: Email address to validate
@@ -531,17 +531,8 @@ class EmailVerificationService:
         Returns:
             True if valid, False otherwise
         """
-        import re
-        # FIXED: Correct email regex that doesn't allow multiple @ symbols
-        email_pattern = re.compile(
-            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        )
-        
-        # Additional validation to ensure single @ symbol
-        if email.count('@') != 1:
-            return False
-        
-        return bool(email_pattern.match(email))
+        from app.utils.validation import EmailValidator
+        return EmailValidator.validate(email)
     
     def _is_rate_limited(self, identifier: str, action: str) -> bool:
         """
