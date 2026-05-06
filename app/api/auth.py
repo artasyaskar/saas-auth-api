@@ -45,18 +45,19 @@ class TokenData(BaseModel):
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme), 
-    db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
-    # TODO: Check if token is blacklisted (requires TokenBlacklistService)
-    # For now, token blacklisting is handled in middleware
-    
+
+    blacklist_service = TokenBlacklistService(db)
+    if blacklist_service.is_token_blacklisted(token):
+        raise credentials_exception
+
     payload = verify_token(token, "access")
     username: str = payload.get("sub")
     

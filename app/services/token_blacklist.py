@@ -6,8 +6,9 @@ and comprehensive token management with proper security considerations.
 """
 
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
+import time
 import redis
 from sqlalchemy.orm import Session
 
@@ -18,13 +19,17 @@ from app.repositories.auth import AuthRepository
 
 # Try to import Redis, fallback to in-memory if not available
 try:
-    redis_client = redis.from_url(settings.redis_url, decode_responses=True) if settings.redis_url else None
+    redis_client = (
+        redis.from_url(settings.redis_url, decode_responses=True)
+        if settings.redis_url
+        else None
+    )
 except Exception:
     redis_client = None
 
-# In-memory fallback storage
-_memory_blacklist: Dict[str, Dict[str, Any]] = {}
-_memory_expiry: Dict[str, datetime] = {}
+# In-memory fallback storage (raw JWT string -> expiry epoch seconds)
+_memory_blacklist: set = set()
+_memory_expiry: Dict[str, float] = {}
 
 
 class TokenBlacklistService:
@@ -57,14 +62,12 @@ class TokenBlacklistService:
                 return True
             
             if self.use_redis:
-                # Use Redis with TTL
-                key = f"blacklist:{token}"
+                # Use Redis with TTL (keyed by token hash to avoid storing raw JWT in the key)
+                key = f"blacklist:{self._hash_token(token)}"
                 redis_client.setex(key, ttl_seconds, f"{user_id}:{token_type}:{reason}")
             else:
-                # Use in-memory storage
                 _memory_blacklist.add(token)
                 _memory_expiry[token] = time.time() + ttl_seconds
-                # Clean up expired tokens periodically
                 self._cleanup_expired_memory_tokens()
             
             # Also store in database for persistence
@@ -88,19 +91,30 @@ class TokenBlacklistService:
             return False
     
     def is_token_blacklisted(self, token: str) -> bool:
-        """Check if a token is blacklisted."""
+        """Check if a token is blacklisted (database, Redis, or in-memory)."""
+        token_hash = self._hash_token(token)
+        now = datetime.now(timezone.utc)
+        db_hit = (
+            self.db.query(TokenBlacklist)
+            .filter(
+                TokenBlacklist.token_hash == token_hash,
+                TokenBlacklist.expires_at > now,
+            )
+            .first()
+        )
+        if db_hit is not None:
+            return True
+
         if self.use_redis:
-            return redis_client.exists(f"blacklist:{token}") > 0
-        else:
-            # Check in-memory
-            if token in _memory_blacklist:
-                # Check if expired
-                if token in _memory_expiry and time.time() > _memory_expiry[token]:
-                    _memory_blacklist.discard(token)
-                    del _memory_expiry[token]
-                    return False
-                return True
-            return False
+            return bool(redis_client.exists(f"blacklist:{token_hash}"))
+
+        if token in _memory_blacklist:
+            if token in _memory_expiry and time.time() > _memory_expiry[token]:
+                _memory_blacklist.discard(token)
+                del _memory_expiry[token]
+                return False
+            return True
+        return False
     
     def blacklist_all_user_tokens(self, user_id: int, reason: str = "logout_all") -> int:
         """
