@@ -1,0 +1,347 @@
+groups:
+  - name: saas-auth-api.rules
+    rules:
+      # API Health
+      - alert: APIDown
+        expr: up{job="saas-auth-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: saas-auth-api
+        annotations:
+          summary: "SaaS Auth API is down"
+          description: "SaaS Auth API has been down for more than 1 minute."
+
+      - alert: APIHighErrorRate
+        expr: rate(http_requests_total{job="saas-auth-api",status=~"5.."}[5m]) / rate(http_requests_total{job="saas-auth-api"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: saas-auth-api
+        annotations:
+          summary: "High error rate on SaaS Auth API"
+          description: "Error rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+
+      - alert: APIHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="saas-auth-api"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: saas-auth-api
+        annotations:
+          summary: "High latency on SaaS Auth API"
+          description: "95th percentile latency is {{ $value }}s for the last 5 minutes."
+
+      - alert: APIMemoryUsage
+        expr: (process_resident_memory_bytes{job="saas-auth-api"} / 1024 / 1024) > 800
+        for: 10m
+        labels:
+          severity: warning
+          service: saas-auth-api
+        annotations:
+          summary: "High memory usage on SaaS Auth API"
+          description: "Memory usage is {{ $value }}MB for the last 10 minutes."
+
+      - alert: APICPUUsage
+        expr: rate(process_cpu_seconds_total{job="saas-auth-api"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: saas-auth-api
+        annotations:
+          summary: "High CPU usage on SaaS Auth API"
+          description: "CPU usage is {{ $value }}% for the last 10 minutes."
+
+      # Database
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database has been down for more than 1 minute."
+
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database connections"
+          description: "Database has {{ $value }} active connections."
+
+      - alert: DatabaseSlowQueries
+        expr: rate(pg_stat_statements_mean_time_seconds[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Slow database queries"
+          description: "Average query time is {{ $value }}s for the last 5 minutes."
+
+      # Redis
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute."
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}."
+
+      # Authentication
+      - alert: HighFailedLogins
+        expr: rate(auth_login_failures_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: auth
+        annotations:
+          summary: "High failed login rate"
+          description: "{{ $value }} failed logins per second for the last 5 minutes."
+
+      - alert: HighFailedLoginsIP
+        expr: rate(auth_login_failures_total[5m]) by (client_ip) > 5
+        for: 2m
+        labels:
+          severity: critical
+          service: auth
+        annotations:
+          summary: "High failed login rate from IP"
+          description: "{{ $value }} failed logins per second from IP {{ $labels.client_ip }}."
+
+      - alert: SuspiciousActivity
+        expr: increase(suspicious_activity_total[5m]) > 50
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "{{ $value }} suspicious activities detected in the last 5 minutes."
+
+      # Rate Limiting
+      - alert: RateLimitExceeded
+        expr: rate(rate_limit_exceeded_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High rate limit exceeded"
+          description: "{{ $value }} rate limit violations per second."
+
+      # Webhooks
+      - alert: WebhookDeliveryFailures
+        expr: rate(webhook_delivery_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: webhooks
+        annotations:
+          summary: "High webhook delivery failures"
+          description: "{{ $value }} webhook delivery failures per second."
+
+      - alert: WebhookQueueBacklog
+        expr: webhook_queue_size > 1000
+        for: 10m
+        labels:
+          severity: warning
+          service: webhooks
+        annotations:
+          summary: "Webhook queue backlog"
+          description: "Webhook queue has {{ $value }} pending items."
+
+      # OAuth
+      - alert: OAuthProviderErrors
+        expr: rate(oauth_provider_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: oauth
+        annotations:
+          summary: "OAuth provider errors"
+          description: "{{ $value }} OAuth provider errors per second."
+
+      # 2FA
+      - alert: TwoFactorFailures
+        expr: rate(two_factor_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: auth
+        annotations:
+          summary: "High 2FA failure rate"
+          description: "{{ $value }} 2FA failures per second."
+
+      # SAML
+      - alert: SAMLErrors
+        expr: rate(saml_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: saml
+        annotations:
+          summary: "SAML errors"
+          description: "{{ $value }} SAML errors per second."
+
+      # SCIM
+      - alert: SCIMErrors
+        expr: rate(scim_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: scim
+        annotations:
+          summary: "SCIM errors"
+          description: "{{ $value }} SCIM errors per second."
+
+      # Kubernetes
+      - alert: PodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: kubernetes
+        annotations:
+          summary: "Pod is crash looping"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is crash looping."
+
+      - alert: PodNotReady
+        expr: kube_pod_status_ready{condition="true"} == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Pod not ready"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is not ready."
+
+      - alert: NodeMemoryHigh
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Node memory usage high"
+          description: "Node {{ $labels.instance }} memory usage is {{ $value | humanizePercentage }}."
+
+      - alert: NodeDiskHigh
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Node disk usage high"
+          description: "Node {{ $labels.instance }} disk usage is {{ $value | humanizePercentage }}."
+
+      # SSL/TLS
+      - alert: CertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 7
+        for: 1h
+        labels:
+          severity: warning
+          service: ssl
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value }} days."
+
+      - alert: CertificateExpired
+        expr: probe_ssl_earliest_cert_expiry - time() < 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ssl
+        annotations:
+          summary: "SSL certificate expired"
+          description: "SSL certificate for {{ $labels.instance }} has expired."
+
+  - name: saas-auth-business.rules
+    rules:
+      # Business Metrics
+      - alert: LowUserRegistration
+        expr: increase(user_registrations_total[1h]) < 10
+        for: 2h
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Low user registration rate"
+          description: "Only {{ $value }} user registrations in the last hour."
+
+      - alert: HighUserChurn
+        expr: increase(user_deletions_total[1h]) > 100
+        for: 1h
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "High user churn rate"
+          description: "{{ $value }} user deletions in the last hour."
+
+      - alert: LowAPIUsage
+        expr: rate(http_requests_total{job="saas-auth-api"}[1h]) < 100
+        for: 1h
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Low API usage"
+          description: "Only {{ $value }} API requests per hour."
+
+      - alert: HighAPIUsage
+        expr: rate(http_requests_total{job="saas-auth-api"}[1h]) > 10000
+        for: 30m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "High API usage"
+          description: "{{ $value }} API requests per hour."
+
+      - alert: OrganizationGrowth
+        expr: increase(organization_registrations_total[24h]) > 50
+        for: 1h
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "High organization growth"
+          description: "{{ $value }} new organizations in the last 24 hours."
+
+      - alert: SubscriptionDowngrades
+        expr: increase(subscription_downgrades_total[24h]) > 10
+        for: 1h
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "High subscription downgrades"
+          description: "{{ $value }} subscription downgrades in the last 24 hours."
+
+      - alert: PaymentFailures
+        expr: increase(payment_failures_total[1h]) > 5
+        for: 30m
+        labels:
+          severity: warning
+          service: billing
+        annotations:
+          summary: "High payment failure rate"
+          description: "{{ $value }} payment failures in the last hour."
