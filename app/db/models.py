@@ -41,6 +41,7 @@ __all__ = [
     "LoginAttempt",
     "RefreshToken",
     "UserPreferences",
+    "EmailVerificationToken",
 ]
 
 Base = declarative_base()
@@ -270,6 +271,20 @@ class EmailVerification(Base):
     verified_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     ip_address = Column(String(45), nullable=True)
+
+
+class EmailVerificationToken(Base):
+    """Email verification token storage (raw token) used by AuthRepository."""
+
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token = Column(String(255), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    is_used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    used_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class UserSession(Base):
