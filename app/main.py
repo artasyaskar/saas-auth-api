@@ -10,6 +10,7 @@ from app.db.session import engine, get_db
 from app.db.models import Base, User, RateLimit
 from app.api import auth, users, admin
 from app.api.routes import password_reset, api_keys, webhooks
+from app.services import AuthService, UserService
 from app.services.usage import UsageService
 from app.core.rate_limit import rate_limiter
 from app.core.config import settings
@@ -18,6 +19,10 @@ from app.middleware.logging import LoggingMiddleware, audit_logger
 from app.middleware.security import SecurityHeadersMiddleware
 from app.middleware.request_id import RequestIDMiddleware
 from app.db.models import TokenBlacklist, PasswordResetToken
+from app.core.exceptions import (
+    HTTPValidationError, HTTPAuthenticationError,
+    HTTPNotFoundError, HTTPConflictError
+)
 
 # Configure structured logging
 structlog.configure(
@@ -67,12 +72,14 @@ async def lifespan(app: FastAPI):
     try:
         admin_user = db.query(User).filter(User.username == "admin").first()
         if not admin_user:
-            from app.core.security import get_password_hash
+            from app.services.security import SecurityService
+            security_service = SecurityService()
+            
             admin_user = User(
                 username="admin",
                 email="admin@example.com",
-                hashed_password=get_password_hash("admin123"),
-                role="ADMIN"
+                hashed_password=security_service.hash_password("admin123"),
+                role=UserRole.ADMIN
             )
             db.add(admin_user)
             db.commit()
@@ -145,10 +152,9 @@ async def usage_tracking_middleware(request: Request, call_next):
 # Global exception handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    """Handle HTTP exceptions with structured logging."""
     request_id = getattr(request.state, "request_id", "unknown")
     
-    logger.warning(
+    logger.error(
         "http_exception",
         request_id=request_id,
         status_code=exc.status_code,
@@ -159,8 +165,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content={
-            "detail": exc.detail,
-            "request_id": request_id,
+            "error": {
+                "code": exc.status_code,
+                "message": exc.detail,
+                "request_id": request_id,
+            }
         },
         headers=getattr(exc, "headers", None),
     )
@@ -168,7 +177,6 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """Handle unexpected exceptions."""
     request_id = getattr(request.state, "request_id", "unknown")
     
     logger.error(
