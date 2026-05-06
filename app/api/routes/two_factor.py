@@ -21,8 +21,9 @@ import base64
 import secrets
 
 from app.db.session import get_db
-from app.db.models import User, TwoFactorMethod, TwoFactorType, UserRole
-from app.api.auth import get_current_active_user, create_access_token, create_refresh_token
+from app.db.models import User, UserRole
+from app.api.auth import get_current_active_user
+from app.core.security import create_access_token, create_refresh_token
 from app.services.two_factor import TwoFactorService
 from app.core.config import settings
 
