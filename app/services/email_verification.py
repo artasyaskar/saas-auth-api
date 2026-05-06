@@ -532,8 +532,9 @@ class EmailVerificationService:
             True if valid, False otherwise
         """
         import re
+        # BUG: Email regex allows multiple @ symbols in local part
         email_pattern = re.compile(
-            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            r'^[a-zA-Z0-9._%+-@]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         )
         
         return bool(email_pattern.match(email))
