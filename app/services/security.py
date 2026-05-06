@@ -17,6 +17,7 @@ import redis
 
 from app.core.config import settings
 from app.core.exceptions import SecurityError, ValidationError
+from app.core.security import hash_password, verify_password, generate_secure_token
 
 
 class SecurityService:
@@ -684,3 +685,8 @@ class SecurityService:
             "expired_sessions": 0,
             "stale_fingerprints": 0
         }
+    
+    # Alias for backward compatibility
+    def get_password_hash(self, password: str) -> str:
+        """Alias for hash_password method."""
+        return self.hash_password(password)
