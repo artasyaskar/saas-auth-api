@@ -9,11 +9,15 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import secrets
 import hashlib
-
+import time
+import structlog
 from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_
 from app.db.models import RefreshToken
 from app.core.config import settings
-from app.core.exceptions import SecurityError, AuthenticationError, DatabaseError
+from app.core.exceptions import SecurityError, AuthenticationError, DatabaseError, ValidationError
+
+logger = structlog.get_logger()
 
 
 class RefreshTokenService:
@@ -151,7 +155,8 @@ class RefreshTokenService:
     def rotate_refresh_token(
         self,
         old_token: str,
-        device_id: Optional[str] = None
+        device_id: Optional[str] = None,
+        force_rotation: bool = False
     ) -> Optional[RefreshToken]:
         """
         Rotate refresh token for security.
@@ -159,6 +164,7 @@ class RefreshTokenService:
         Args:
             old_token: Current refresh token
             device_id: Device identifier
+            force_rotation: Force rotation even if not required
             
         Returns:
             New RefreshToken instance or None if failed
@@ -168,36 +174,61 @@ class RefreshTokenService:
             SecurityError: If rotation fails
         """
         try:
-            # Validate old token
+            # Validate old token first
             old_refresh_token = self.validate_refresh_token(old_token, device_id)
             
             if not old_refresh_token:
                 raise AuthenticationError("Invalid refresh token for rotation")
             
-            # Revoke old token
-            self._revoke_token(old_refresh_token.id, "Token rotation")
+            # Check if rotation is required (unless forced)
+            if not force_rotation and not self._should_rotate_token(old_refresh_token):
+                logger.info(f"Token rotation not required for user {old_refresh_token.user_id}")
+                return None
             
-            # Create new token
-            new_token = self.create_refresh_token(
-                user_id=old_refresh_token.user_id,
-                device_id=old_refresh_token.device_id,
-                expires_days=settings.security.refresh_token_expire_days
-            )
+            # Add concurrency protection with timestamp check
+            rotation_timestamp = datetime.utcnow()
             
-            # Update usage statistics
-            old_refresh_token.last_used_at = datetime.utcnow()
-            old_refresh_token.usage_count += 1
-            self.db.commit()
+            # Check if token was already rotated (concurrent request protection)
+            if old_refresh_token.last_used_at and old_refresh_token.last_used_at > rotation_timestamp - timedelta(seconds=1):
+                logger.warning(f"Concurrent rotation attempt detected for user {old_refresh_token.user_id}")
+                raise AuthenticationError("Token was already rotated")
             
-            # TODO: Log rotation event
-            # TODO: Add rotation tracking
-            # TODO: Add rotation limits
-            
-            return new_token
+            # Start database transaction for atomic rotation
+            try:
+                # Mark old token as revoked first
+                revoke_success = self._revoke_token(old_refresh_token.id, "Token rotation")
+                if not revoke_success:
+                    raise SecurityError("Failed to revoke old token during rotation")
+                
+                # Create new token with same user and device
+                new_token = self.create_refresh_token(
+                    user_id=old_refresh_token.user_id,
+                    device_id=old_refresh_token.device_id,
+                    expires_days=self._calculate_rotation_expires_days(old_refresh_token)
+                )
+                
+                if not new_token:
+                    raise SecurityError("Failed to create new token during rotation")
+                
+                # Update old token usage statistics
+                old_refresh_token.last_used_at = rotation_timestamp
+                old_refresh_token.usage_count += 1
+                
+                # Commit transaction atomically
+                self.db.commit()
+                
+                logger.info(f"Successfully rotated token for user {old_refresh_token.user_id}")
+                return new_token
+                
+            except Exception as e:
+                self.db.rollback()
+                logger.error(f"Token rotation transaction failed: {str(e)}")
+                raise SecurityError(f"Token rotation failed: {str(e)}")
             
         except (AuthenticationError, SecurityError):
             raise
         except Exception as e:
+            logger.error(f"Unexpected error during token rotation: {str(e)}")
             raise SecurityError(f"Token rotation failed: {str(e)}")
     
     def revoke_refresh_token(
@@ -478,22 +509,129 @@ class RefreshTokenService:
             True if rotation is recommended
         """
         # Rotate based on usage count
-        if token.usage_count >= 10:
+        if token.usage_count >= getattr(settings.security, 'rotation_usage_limit', 10):
             return True
         
         # Rotate based on age (30 days)
         if token.created_at:
             age_days = (datetime.utcnow() - token.created_at).days
-            if age_days >= 30:
+            if age_days >= getattr(settings.security, 'rotation_age_days', 30):
                 return True
         
         # Rotate based on last usage (7 days)
         if token.last_used_at:
             days_since_use = (datetime.utcnow() - token.last_used_at).days
-            if days_since_use >= 7:
+            if days_since_use >= getattr(settings.security, 'rotation_inactivity_days', 7):
+                return True
+        
+        # Rotate if token is close to expiration (within 7 days)
+        if token.expires_at:
+            days_until_expiry = (token.expires_at - datetime.utcnow()).days
+            if days_until_expiry <= getattr(settings.security, 'rotation_expiry_threshold', 7):
                 return True
         
         return False
+    
+    def _calculate_rotation_expires_days(self, old_token: RefreshToken) -> int:
+        """
+        Calculate expiration days for rotated token.
+        
+        Args:
+            old_token: The old refresh token
+            
+        Returns:
+            Number of days for new token expiration
+        """
+        # Preserve original expiration time if reasonable
+        if old_token.expires_at:
+            remaining_days = (old_token.expires_at - datetime.utcnow()).days
+            # Extend by rotation extension period or use default
+            extension_days = getattr(settings.security, 'rotation_extension_days', 30)
+            return max(remaining_days + extension_days, settings.security.refresh_token_expire_days)
+        
+        return settings.security.refresh_token_expire_days
+    
+    def validate_refresh_token_with_rotation_check(
+        self,
+        token: str,
+        device_id: Optional[str] = None,
+        auto_rotate: bool = False
+    ) -> tuple[RefreshToken, Optional[RefreshToken]]:
+        """
+        Validate refresh token and optionally rotate it.
+        
+        Args:
+            token: Refresh token to validate
+            device_id: Expected device ID for binding
+            auto_rotate: Whether to automatically rotate if needed
+            
+        Returns:
+            Tuple of (validated_token, rotated_token)
+            
+        Raises:
+            AuthenticationError: If token is invalid
+            SecurityError: If validation fails
+        """
+        try:
+            # Validate the token
+            validated_token = self.validate_refresh_token(token, device_id)
+            
+            if not validated_token:
+                raise AuthenticationError("Invalid refresh token")
+            
+            rotated_token = None
+            
+            # Check if rotation is needed and auto-rotate is enabled
+            if auto_rotate and self._should_rotate_token(validated_token):
+                try:
+                    rotated_token = self.rotate_refresh_token(
+                        token, device_id, force_rotation=False
+                    )
+                    logger.info(f"Auto-rotated token for user {validated_token.user_id}")
+                except Exception as e:
+                    logger.warning(f"Auto-rotation failed for user {validated_token.user_id}: {str(e)}")
+                    # Continue with original token if rotation fails
+            
+            return validated_token, rotated_token
+            
+        except (AuthenticationError, SecurityError):
+            raise
+        except Exception as e:
+            logger.error(f"Token validation with rotation check failed: {str(e)}")
+            raise SecurityError(f"Token validation failed: {str(e)}")
+    
+    def cleanup_stale_tokens(self, days_inactive: int = 90) -> int:
+        """
+        Clean up stale tokens that haven't been used.
+        
+        Args:
+            days_inactive: Number of days of inactivity to consider stale
+            
+        Returns:
+            Number of tokens cleaned up
+        """
+        try:
+            cutoff_date = datetime.utcnow() - timedelta(days=days_inactive)
+            
+            stale_tokens = self.db.query(RefreshToken).filter(
+                and_(
+                    RefreshToken.is_active == True,
+                    RefreshToken.last_used_at < cutoff_date,
+                    RefreshToken.expires_at > datetime.utcnow()  # Not expired
+                )
+            ).all()
+            
+            cleaned_count = 0
+            for token in stale_tokens:
+                if self._revoke_token(token.id, f"Stale token cleanup ({days_inactive} days)"):
+                    cleaned_count += 1
+            
+            logger.info(f"Cleaned up {cleaned_count} stale tokens inactive for {days_inactive} days")
+            return cleaned_count
+            
+        except Exception as e:
+            logger.error(f"Failed to cleanup stale tokens: {str(e)}")
+            raise DatabaseError(f"Failed to cleanup stale tokens: {str(e)}")
     
     def _is_expired(self, token: RefreshToken) -> bool:
         """
