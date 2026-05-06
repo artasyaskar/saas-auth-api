@@ -40,6 +40,7 @@ __all__ = [
     "SecurityEvent",
     "LoginAttempt",
     "RefreshToken",
+    "UserPreferences",
 ]
 
 Base = declarative_base()
@@ -72,6 +73,23 @@ class User(Base):
     
     usage_logs = relationship("UsageLog", back_populates="user")
     subscriptions = relationship("Subscription", back_populates="user")
+    preferences = relationship(
+        "UserPreferences", back_populates="user", uselist=False
+    )
+
+
+class UserPreferences(Base):
+    """Arbitrary JSON preferences keyed per user (theme, notifications, etc.)."""
+
+    __tablename__ = "user_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    preferences = Column(JSON, nullable=False, default=lambda: {})
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user = relationship("User", back_populates="preferences")
 
 
 class UsageLog(Base):
