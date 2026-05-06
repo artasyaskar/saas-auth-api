@@ -211,6 +211,10 @@ app.include_router(two_factor.router, prefix="/auth/2fa", tags=["two-factor-auth
 from app.api.routes import organizations
 app.include_router(organizations.router, tags=["organizations"])
 
+# Import and include SCIM routes
+from app.api.routes import scim
+app.include_router(scim.router, tags=["scim"])
+
 
 @app.get("/")
 async def root():
