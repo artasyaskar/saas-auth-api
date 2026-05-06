@@ -23,8 +23,11 @@ from app.schemas.auth import (
     TwoFactorVerifyRequest, SessionInfo
 )
 from app.core.security import (
-    create_access_token, create_refresh_token, verify_token,
     hash_password, verify_password, generate_secure_token
+)
+from app.core.jwt import (
+    create_access_token, create_refresh_token, verify_token,
+    blacklist_token, create_token_pair, refresh_access_token
 )
 from app.core.config import settings
 from app.core.exceptions import (
@@ -104,9 +107,18 @@ class AuthService:
             # Update user login info
             self.user_repo.update_last_login(user.id)
             
-            # Create tokens
-            access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
-            refresh_token = create_refresh_token(data={"sub": user.email, "user_id": user.id})
+            # Create tokens with proper user data
+            user_data = {
+                "sub": user.email,
+                "user_id": user.id,
+                "email": user.email,
+                "username": user.username,
+                "role": user.role.value if user.role else None
+            }
+            
+            token_pair = create_token_pair(user_data)
+            access_token = token_pair["access_token"]
+            refresh_token = token_pair["refresh_token"]
             
             # Record successful login
             self.auth_repo.record_login_attempt(
@@ -158,33 +170,33 @@ class AuthService:
             AuthenticationError: If refresh token is invalid
         """
         try:
-            # Validate refresh token
-            token_data = verify_token(request.refresh_token, "refresh")
+            # Use new token refresh system
+            token_data = refresh_access_token(request.refresh_token)
             
             if not token_data:
                 raise AuthenticationError("Invalid refresh token")
             
-            # Check if token is blacklisted
-            if self.auth_repo.is_token_blacklisted(request.refresh_token):
-                raise AuthenticationError("Token has been revoked")
+            # Extract user data from refresh token
+            refresh_payload = verify_token(request.refresh_token, "refresh")
+            
+            if not refresh_payload:
+                raise AuthenticationError("Invalid refresh token")
             
             # Get user
-            user = self.user_repo.get_by_email(token_data.get("sub"))
+            user = self.user_repo.get_by_email(refresh_payload.get("sub"))
             
             if not user or not user.is_active:
                 raise AuthenticationError("Invalid user")
             
-            # Create new access token
-            access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
-            
             # TODO: Implement token rotation
             # TODO: Add device validation
+            # TODO: Add refresh token usage tracking
             
             return LoginResponse(
-                access_token=access_token,
-                refresh_token=request.refresh_token,  # Keep same refresh token
-                token_type="bearer",
-                expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+                access_token=token_data["access_token"],
+                refresh_token=token_data.get("refresh_token", request.refresh_token),
+                token_type=token_data.get("token_type", "bearer"),
+                expires_in=token_data.get("expires_in", settings.security.access_token_expire_minutes * 60),
                 user={
                     "id": user.id,
                     "email": user.email,
