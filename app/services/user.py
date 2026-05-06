@@ -358,11 +358,11 @@ class UserService:
             raise AppValidationError(f"Failed to get user stats: {str(e)}")
     
     def search_users(
-        self, 
-        search_term: str, 
-        page: int = 1, 
+        self,
+        search_term: str,
+        current_user_id: int,
+        page: int = 1,
         size: int = 20,
-        current_user_id: int
     ) -> Dict[str, Any]:
         """
         Search users with pagination and authorization.
