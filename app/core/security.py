@@ -84,3 +84,7 @@ def verify_token(token: str, token_type: str = "access") -> dict:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+# Alias used by services layer (single implementation)
+hash_password = get_password_hash
