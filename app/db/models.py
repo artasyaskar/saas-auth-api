@@ -42,6 +42,13 @@ __all__ = [
     "RefreshToken",
     "UserPreferences",
     "EmailVerificationToken",
+    "OAuthAccount",
+    "TwoFactorSecret",
+    "TwoFactorBackupCode",
+    "Organization",
+    "OrganizationMember",
+    "OrganizationInvitation",
+    "OrganizationSAMLConfig",
 ]
 
 Base = declarative_base()
@@ -58,6 +65,92 @@ class SubscriptionPlan(enum.Enum):
     ENTERPRISE = "ENTERPRISE"
 
 
+class Organization(Base):
+    """Tenant boundary for multi-tenant SaaS accounts."""
+
+    __tablename__ = "organizations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    slug = Column(String(64), nullable=False, unique=True, index=True)
+    description = Column(Text, nullable=True)
+    website = Column(String(500), nullable=True)
+    plan = Column(Enum(SubscriptionPlan), default=SubscriptionPlan.FREE, nullable=False)
+    settings = Column(JSON, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class OrganizationMember(Base):
+    """Membership relationship between a user and an organization."""
+
+    __tablename__ = "organization_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    organization_id = Column(
+        Integer, ForeignKey("organizations.id"), nullable=False, index=True
+    )
+    role = Column(String(32), nullable=False, default="member")
+    is_active = Column(Boolean, default=True, nullable=False)
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class OrganizationInvitation(Base):
+    """Email invitation to join an organization."""
+
+    __tablename__ = "organization_invitations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer, ForeignKey("organizations.id"), nullable=False, index=True
+    )
+    email = Column(String(255), nullable=False, index=True)
+    role = Column(String(32), nullable=False, default="member")
+    invited_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    token = Column(String(255), nullable=False, unique=True, index=True)
+    status = Column(String(32), nullable=False, default="pending")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    accepted_at = Column(DateTime(timezone=True), nullable=True)
+
+
+class OrganizationSAMLConfig(Base):
+    """SAML configuration per organization for SSO."""
+
+    __tablename__ = "organization_saml_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(
+        Integer, ForeignKey("organizations.id"), nullable=False, index=True
+    )
+    entity_id = Column(String(255), nullable=False, unique=True, index=True)
+
+    idp_entity_id = Column(String(255), nullable=False)
+    idp_sso_url = Column(String(500), nullable=False)
+    idp_slo_url = Column(String(500), nullable=True)
+    idp_x509_cert = Column(Text, nullable=False)
+
+    sp_entity_id = Column(String(255), nullable=True)
+    sp_acs_url = Column(String(500), nullable=True)
+    sp_slo_url = Column(String(500), nullable=True)
+    sp_x509_cert = Column(Text, nullable=True)
+    sp_private_key = Column(Text, nullable=True)
+
+    name_id_format = Column(
+        String(255),
+        nullable=False,
+        default="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+    )
+    want_assertions_signed = Column(Boolean, default=True, nullable=False)
+    want_response_signed = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 class User(Base):
     __tablename__ = "users"
     
@@ -67,6 +160,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    email_verified = Column(Boolean, default=False, nullable=False)
     subscription_plan = Column(Enum(SubscriptionPlan), default=SubscriptionPlan.FREE, nullable=False)
     stripe_customer_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -77,6 +171,55 @@ class User(Base):
     preferences = relationship(
         "UserPreferences", back_populates="user", uselist=False
     )
+
+
+class OAuthAccount(Base):
+    """Linked social / OIDC identity for a user."""
+
+    __tablename__ = "oauth_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    provider = Column(String(32), nullable=False, index=True)
+    provider_user_id = Column(String(255), nullable=False, index=True)
+    email = Column(String(255), nullable=True)
+    name = Column(String(255), nullable=True)
+    picture = Column(String(500), nullable=True)
+    access_token = Column(Text, nullable=True)
+    refresh_token = Column(Text, nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class TwoFactorSecret(Base):
+    """Stored 2FA secrets / OTP material per user and method."""
+
+    __tablename__ = "two_factor_secrets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    method = Column(String(32), nullable=False, index=True)
+    secret = Column(String(512), nullable=False)
+    phone_number = Column(String(32), nullable=True)
+    is_enabled = Column(Boolean, default=False, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    verified_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TwoFactorBackupCode(Base):
+    """One-time backup / recovery codes for 2FA."""
+
+    __tablename__ = "two_factor_backup_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    code = Column(String(128), nullable=False, index=True)
+    is_used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    used_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class UserPreferences(Base):
