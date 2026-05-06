@@ -20,9 +20,9 @@ from enum import Enum
 from app.db.session import get_db
 from app.db.models import (
     User, UserRole, Organization, OrganizationMember,
-    OrganizationRole, OrganizationInvitation, SubscriptionPlan
+    OrganizationInvitation, SubscriptionPlan
 )
-from app.api.auth import get_current_active_user, get_current_admin_user
+from app.api.auth import get_current_active_user
 from app.services.email import EmailService
 
 
@@ -575,7 +575,7 @@ async def invite_member(
     # Send invitation email
     # TODO: Integrate with email service
     
-    invite_url = f"{settings.FRONTEND_URL}/invite?token={token}"
+    invite_url = f"{settings.frontend_url}/invite?token={token}"
     
     return InvitationResponse(
         id=invitation.id,
