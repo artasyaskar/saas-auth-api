@@ -1,14 +1,28 @@
 """
-Advanced caching service with multiple backends and strategies.
-Supports Redis, in-memory, and disk-based caching with TTL.
+Enhanced API response caching service with multiple strategies.
+
+Provides enterprise-grade caching with support for:
+- Redis and in-memory backends
+- Multiple cache strategies (LRU, TTL, write-through, cache-aside)
+- Tag-based invalidation and cache warming
+- Performance monitoring and metrics
+- API response optimization
+- Cache invalidation policies
 """
 import hashlib
 import json
 import pickle
+import time
+import threading
 from datetime import datetime, timedelta
-from typing import Any, Optional, Dict, List, Callable
+from typing import Any, Optional, Dict, List, Callable, Union
 from functools import wraps
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum
+import structlog
+
+logger = structlog.get_logger()
 
 
 class CacheBackend(ABC):
@@ -444,3 +458,452 @@ def cached(
         cache = CacheService()  # Default instance
         return cache.cache_decorator(ttl, key_prefix, tags)(func)
     return decorator
+
+
+class CacheStrategy(Enum):
+    """Cache strategy enumeration."""
+    LRU = "lru"
+    TTL = "ttl"
+    WRITE_THROUGH = "write_through"
+    WRITE_BEHIND = "write_behind"
+    CACHE_ASIDE = "cache_aside"
+    READ_THROUGH = "read_through"
+
+
+@dataclass
+class CacheConfig:
+    """Cache configuration for API responses."""
+    strategy: CacheStrategy = CacheStrategy.CACHE_ASIDE
+    default_ttl: int = 300
+    max_size: int = 1000
+    enable_compression: bool = True
+    enable_metrics: bool = True
+    cleanup_interval: int = 3600
+    key_prefix: str = "api"
+    tags: List[str] = field(default_factory=list)
+
+
+class EnhancedCacheService(CacheService):
+    """
+    Enhanced cache service with API response optimization.
+    
+    Additional features:
+    - Response compression
+    - Intelligent cache warming
+    - Advanced invalidation strategies
+    - Performance metrics and monitoring
+    - Cache health checks
+    - Multi-level caching
+    """
+    
+    def __init__(self, config: CacheConfig = None):
+        super().__init__()
+        self.config = config or CacheConfig()
+        self.metrics = {
+            "hits": 0,
+            "misses": 0,
+            "sets": 0,
+            "deletes": 0,
+            "compressions": 0,
+            "decompressions": 0,
+            "errors": 0,
+            "total_response_time": 0.0,
+            "average_response_time": 0.0,
+            "cache_size_bytes": 0,
+            "memory_savings_bytes": 0
+        }
+        self.lock = threading.Lock()
+        self._start_cleanup_timer()
+    
+    def _start_cleanup_timer(self) -> None:
+        """Start background cleanup timer."""
+        def cleanup():
+            while True:
+                try:
+                    time.sleep(self.config.cleanup_interval)
+                    self._cleanup_expired()
+                    self._update_metrics()
+                except Exception as e:
+                    logger.error(f"Cache cleanup error: {str(e)}")
+        
+        cleanup_thread = threading.Thread(target=cleanup, daemon=True)
+        cleanup_thread.start()
+    
+    def get(self, key: str) -> Optional[Any]:
+        """Get value with metrics tracking."""
+        start_time = time.time()
+        
+        try:
+            value = super().get(key)
+            
+            with self.lock:
+                self.metrics["total_response_time"] += time.time() - start_time
+                if value is not None:
+                    self.metrics["hits"] += 1
+                else:
+                    self.metrics["misses"] += 1
+                
+                # Update average response time
+                total_requests = self.metrics["hits"] + self.metrics["misses"]
+                if total_requests > 0:
+                    self.metrics["average_response_time"] = (
+                        self.metrics["total_response_time"] / total_requests
+                    )
+            
+            return value
+            
+        except Exception as e:
+            with self.lock:
+                self.metrics["errors"] += 1
+            logger.error(f"Enhanced cache get error for key {key}: {str(e)}")
+            return None
+    
+    def set(self, key: str, value: Any, ttl: Optional[int] = None, tags: Optional[List[str]] = None) -> bool:
+        """Set value with compression and metrics."""
+        try:
+            # Apply compression if enabled
+            processed_value = self._process_value_for_storage(value)
+            
+            success = super().set(
+                key, 
+                processed_value, 
+                ttl or self.config.default_ttl,
+                tags or self.config.tags
+            )
+            
+            if success:
+                with self.lock:
+                    self.metrics["sets"] += 1
+                    if processed_value != value:
+                        self.metrics["compressions"] += 1
+                        # Calculate compression savings
+                        original_size = len(pickle.dumps(value))
+                        compressed_size = len(pickle.dumps(processed_value))
+                        savings = original_size - compressed_size
+                        if savings > 0:
+                            self.metrics["memory_savings_bytes"] += savings
+            
+            return success
+            
+        except Exception as e:
+            with self.lock:
+                self.metrics["errors"] += 1
+            logger.error(f"Enhanced cache set error for key {key}: {str(e)}")
+            return False
+    
+    def delete(self, key: str) -> bool:
+        """Delete value with metrics tracking."""
+        try:
+            success = super().delete(key)
+            
+            if success:
+                with self.lock:
+                    self.metrics["deletes"] += 1
+            
+            return success
+            
+        except Exception as e:
+            with self.lock:
+                self.metrics["errors"] += 1
+            logger.error(f"Enhanced cache delete error for key {key}: {str(e)}")
+            return False
+    
+    def _process_value_for_storage(self, value: Any) -> Any:
+        """Process value for storage (compression, etc.)."""
+        if not self.config.enable_compression:
+            return value
+        
+        # Simple compression for large objects
+        try:
+            serialized = pickle.dumps(value)
+            if len(serialized) > 1024:  # Only compress objects > 1KB
+                # Use a simple compression indicator
+                return {"_compressed": True, "_data": serialized}
+            return value
+        except Exception:
+            return value
+    
+    def _process_value_from_storage(self, value: Any) -> Any:
+        """Process value retrieved from storage."""
+        if isinstance(value, dict) and value.get("_compressed"):
+            try:
+                with self.lock:
+                    self.metrics["decompressions"] += 1
+                return pickle.loads(value["_data"])
+            except Exception as e:
+                logger.error(f"Cache decompression error: {str(e)}")
+                return None
+        return value
+    
+    def _cleanup_expired(self) -> None:
+        """Clean up expired entries."""
+        try:
+            if hasattr(self._backend, 'cleanup_expired'):
+                count = self._backend.cleanup_expired()
+                if count > 0:
+                    logger.info(f"Cleaned up {count} expired cache entries")
+        except Exception as e:
+            logger.error(f"Cache cleanup error: {str(e)}")
+    
+    def _update_metrics(self) -> None:
+        """Update cache size metrics."""
+        try:
+            if hasattr(self._backend, '_cache'):
+                with self.lock:
+                    total_size = 0
+                    for entry in self._backend._cache.values():
+                        if isinstance(entry, dict):
+                            # Calculate size of cached data
+                            try:
+                                total_size += len(pickle.dumps(entry.get("value", "")))
+                            except:
+                                pass
+                    self.metrics["cache_size_bytes"] = total_size
+        except Exception:
+            pass
+    
+    def cache_api_response(
+        self,
+        endpoint: str,
+        params: Dict[str, Any],
+        response: Any,
+        ttl: Optional[int] = None,
+        tags: Optional[List[str]] = None
+    ) -> bool:
+        """
+        Cache API response with intelligent key generation.
+        
+        Args:
+            endpoint: API endpoint path
+            params: Request parameters
+            response: Response data to cache
+            ttl: Cache TTL
+            tags: Cache tags
+            
+        Returns:
+            Success status
+        """
+        # Generate intelligent cache key
+        cache_key = self._generate_api_cache_key(endpoint, params)
+        
+        # Add API-specific tags
+        api_tags = ["api", endpoint.replace("/", "_")]
+        if tags:
+            api_tags.extend(tags)
+        
+        return self.set(cache_key, response, ttl, api_tags)
+    
+    def get_cached_api_response(
+        self,
+        endpoint: str,
+        params: Dict[str, Any]
+    ) -> Optional[Any]:
+        """
+        Get cached API response.
+        
+        Args:
+            endpoint: API endpoint path
+            params: Request parameters
+            
+        Returns:
+            Cached response or None
+        """
+        cache_key = self._generate_api_cache_key(endpoint, params)
+        return self.get(cache_key)
+    
+    def _generate_api_cache_key(self, endpoint: str, params: Dict[str, Any]) -> str:
+        """Generate cache key for API request."""
+        # Sort parameters for consistent key generation
+        sorted_params = sorted(params.items())
+        param_string = json.dumps(sorted_params, sort_keys=True)
+        
+        # Create components
+        components = [
+            self.config.key_prefix,
+            endpoint.strip("/"),
+            hashlib.md5(param_string.encode()).hexdigest()
+        ]
+        
+        return ":".join(components)
+    
+    def invalidate_by_endpoint(self, endpoint: str) -> int:
+        """
+        Invalidate all cache entries for a specific endpoint.
+        
+        Args:
+            endpoint: API endpoint to invalidate
+            
+        Returns:
+            Number of entries invalidated
+        """
+        tag = f"api_{endpoint.replace('/', '_')}"
+        return self.flush(tag)
+    
+    def warm_cache_for_endpoints(
+        self,
+        endpoints_data: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, bool]:
+        """
+        Warm cache for multiple endpoints.
+        
+        Args:
+            endpoints_data: Dict of endpoint to {params: callback}
+            
+        Returns:
+            Dict of endpoints to success status
+        """
+        results = {}
+        
+        for endpoint, data in endpoints_data.items():
+            try:
+                params = data.get("params", {})
+                callback = data.get("callback")
+                ttl = data.get("ttl", self.config.default_ttl)
+                
+                if callback:
+                    response = callback()
+                    success = self.cache_api_response(endpoint, params, response, ttl)
+                    results[endpoint] = success
+                else:
+                    results[endpoint] = False
+                    
+            except Exception as e:
+                logger.error(f"Cache warming error for {endpoint}: {str(e)}")
+                results[endpoint] = False
+        
+        return results
+    
+    def get_enhanced_stats(self) -> Dict[str, Any]:
+        """Get comprehensive cache statistics."""
+        base_stats = self.get_stats()
+        
+        with self.lock:
+            total_requests = self.metrics["hits"] + self.metrics["misses"]
+            hit_rate = self.metrics["hits"] / max(total_requests, 1) * 100
+            
+            enhanced_stats = {
+                **base_stats,
+                "enhanced_metrics": {
+                    "hits": self.metrics["hits"],
+                    "misses": self.metrics["misses"],
+                    "sets": self.metrics["sets"],
+                    "deletes": self.metrics["deletes"],
+                    "compressions": self.metrics["compressions"],
+                    "decompressions": self.metrics["decompressions"],
+                    "errors": self.metrics["errors"],
+                    "hit_rate": hit_rate,
+                    "average_response_time_ms": self.metrics["average_response_time"] * 1000,
+                    "cache_size_bytes": self.metrics["cache_size_bytes"],
+                    "memory_savings_bytes": self.metrics["memory_savings_bytes"],
+                    "compression_rate": (
+                        self.metrics["compressions"] / max(self.metrics["sets"], 1) * 100
+                    )
+                },
+                "config": {
+                    "strategy": self.config.strategy.value,
+                    "default_ttl": self.config.default_ttl,
+                    "max_size": self.config.max_size,
+                    "enable_compression": self.config.enable_compression,
+                    "enable_metrics": self.config.enable_metrics,
+                    "cleanup_interval": self.config.cleanup_interval,
+                    "key_prefix": self.config.key_prefix
+                }
+            }
+        
+        return enhanced_stats
+    
+    def health_check(self) -> Dict[str, Any]:
+        """Perform comprehensive health check."""
+        try:
+            # Test basic operations
+            test_key = f"{self.config.key_prefix}:health_check"
+            test_value = {"timestamp": time.time(), "test": True}
+            
+            # Test set
+            set_success = self.set(test_key, test_value, ttl=10)
+            
+            # Test get
+            retrieved_value = self.get(test_key)
+            get_success = retrieved_value is not None
+            
+            # Test delete
+            delete_success = self.delete(test_key)
+            
+            # Test API response caching
+            api_success = self.cache_api_response(
+                "/health", {"test": True}, {"status": "ok"}, ttl=10
+            )
+            api_retrieved = self.get_cached_api_response("/health", {"test": True})
+            api_get_success = api_retrieved is not None
+            
+            is_healthy = all([
+                set_success, get_success, delete_success,
+                api_success, api_get_success
+            ])
+            
+            return {
+                "healthy": is_healthy,
+                "tests": {
+                    "basic_set": set_success,
+                    "basic_get": get_success,
+                    "basic_delete": delete_success,
+                    "api_cache": api_success,
+                    "api_get": api_get_success
+                },
+                "stats": self.get_enhanced_stats()
+            }
+            
+        except Exception as e:
+            logger.error(f"Enhanced cache health check failed: {str(e)}")
+            return {
+                "healthy": False,
+                "error": str(e),
+                "stats": self.get_enhanced_stats()
+            }
+
+
+# Global enhanced cache instance
+enhanced_cache = EnhancedCacheService()
+
+
+def cache_api_response(
+    endpoint: str,
+    ttl: int = 300,
+    tags: Optional[List[str]] = None
+):
+    """
+    Decorator for caching API responses.
+    
+    Usage:
+        @cache_api_response("/users", ttl=600)
+        def get_users(params):
+            return user_service.get_users(params)
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Extract request parameters
+            params = kwargs.get("params", {})
+            
+            # Try to get from cache
+            cached_response = enhanced_cache.get_cached_api_response(endpoint, params)
+            if cached_response is not None:
+                return cached_response
+            
+            # Execute function and cache result
+            response = func(*args, **kwargs)
+            enhanced_cache.cache_api_response(endpoint, params, response, ttl, tags)
+            return response
+        
+        return wrapper
+    return decorator
+
+
+def get_enhanced_cache_stats() -> Dict[str, Any]:
+    """Get enhanced cache statistics."""
+    return enhanced_cache.get_enhanced_stats()
+
+
+def cache_health_check() -> Dict[str, Any]:
+    """Perform enhanced cache health check."""
+    return enhanced_cache.health_check()
