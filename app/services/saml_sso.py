@@ -18,8 +18,13 @@ from dataclasses import dataclass
 from enum import Enum
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse, urlencode
-import xmlsec
-from lxml import etree
+
+try:
+    import xmlsec  # type: ignore
+    from lxml import etree  # type: ignore
+except Exception:  # pragma: no cover
+    xmlsec = None
+    etree = None
 import secrets
 
 from sqlalchemy.orm import Session
@@ -126,6 +131,10 @@ class SAMLService:
     }
     
     def __init__(self, db: Session):
+        if xmlsec is None or etree is None:
+            raise RuntimeError(
+                "SAML dependencies are not installed. Install `xmlsec` and `lxml` to enable SAML SSO."
+            )
         self.db = db
         
     def get_saml_config(self, organization_id: int) -> Optional[SAMLConfig]:
@@ -145,8 +154,8 @@ class SAMLService:
             idp_sso_url=config.idp_sso_url,
             idp_slo_url=config.idp_slo_url,
             idp_x509_cert=config.idp_x509_cert,
-            sp_entity_id=config.sp_entity_id or f"{settings.BASE_URL}/saml/metadata",
-            sp_acs_url=config.sp_acs_url or f"{settings.BASE_URL}/saml/acs",
+                sp_entity_id=config.sp_entity_id or f"{settings.base_url}/saml/metadata",
+                sp_acs_url=config.sp_acs_url or f"{settings.base_url}/saml/acs",
             sp_slo_url=config.sp_slo_url,
             sp_x509_cert=config.sp_x509_cert,
             sp_private_key=config.sp_private_key,
@@ -490,7 +499,7 @@ class SAMLService:
             member = OrganizationMember(
                 user_id=user.id,
                 organization_id=organization_id,
-                role=OrganizationRole.ADMIN if saml_attrs.is_admin else OrganizationRole.MEMBER,
+                role="admin" if saml_attrs.is_admin else "member",
                 joined_at=datetime.utcnow(),
                 is_active=True
             )
@@ -584,4 +593,4 @@ class SAMLService:
             raise ValueError(f"Failed to parse logout response: {e}")
 
 
-from app.db.models import OrganizationMember, OrganizationRole
+from app.db.models import OrganizationMember

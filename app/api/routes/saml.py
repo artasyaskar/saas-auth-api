@@ -8,7 +8,7 @@ Enterprise SAML 2.0 Single Sign-On endpoints:
 - Single logout
 - Certificate management
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response, Form
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any
@@ -21,7 +21,7 @@ import gzip
 from app.db.session import get_db
 from app.db.models import User, Organization, OrganizationSAMLConfig
 from app.api.auth import get_current_active_user
-from app.services.saml_sso import SAMLService, SAMLBinding
+from app.services.saml_sso import SAMLBinding
 from app.core.security import create_access_token, create_refresh_token
 from app.core.config import settings
 
@@ -62,8 +62,11 @@ class SAMLInitRequest(BaseModel):
     relay_state: Optional[str] = None
 
 
-def get_saml_service(db: Session) -> SAMLService:
+def get_saml_service(db: Session):
     """Get SAML service instance."""
+    # Lazy import so the app can start without optional SAML deps installed.
+    from app.services.saml_sso import SAMLService
+
     return SAMLService(db)
 
 
@@ -232,7 +235,7 @@ async def assertion_consumer_service(
         # In production, you'd store the SAML session index for logout
         
         # Redirect to frontend with tokens
-        redirect_url = f"{settings.FRONTEND_URL}/auth/saml/callback?access_token={access_token}&refresh_token={refresh_token}"
+        redirect_url = f"{settings.frontend_url}/auth/saml/callback?access_token={access_token}&refresh_token={refresh_token}"
         
         if RelayState and RelayState != str(organization_id):
             redirect_url += f"&state={RelayState}"
@@ -315,10 +318,10 @@ async def logout_response(
         
         if logout_response['success']:
             # Logout successful - redirect to frontend
-            redirect_url = f"{settings.FRONTEND_URL}/logout?success=true"
+            redirect_url = f"{settings.frontend_url}/logout?success=true"
         else:
             # Logout failed
-            redirect_url = f"{settings.FRONTEND_URL}/logout?success=false&error={logout_response.get('status', 'unknown')}"
+            redirect_url = f"{settings.frontend_url}/logout?success=false&error={logout_response.get('status', 'unknown')}"
         
         if RelayState:
             redirect_url += f"&state={RelayState}"
@@ -614,4 +617,4 @@ async def test_saml_connection(
     }
 
 
-from fastapi import Form
+
