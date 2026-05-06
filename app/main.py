@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 import structlog
 
 from app.db.session import engine, get_db
-from app.db.models import Base, User, RateLimit
+from app.db.models import Base, User, UserRole, RateLimit
 from app.api import auth, users, admin
 from app.api.routes import password_reset, api_keys, webhooks
 from app.services import AuthService, UserService
