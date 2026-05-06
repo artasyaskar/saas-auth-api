@@ -178,13 +178,13 @@ class PasswordResetService:
             if not reset_token:
                 raise NotFoundError("Invalid or expired password reset token")
             
-            # Check expiration first (BUG: Race condition - check before usage check)
-            if datetime.utcnow() > reset_token.expires_at:
-                raise ValidationError("Password reset token has expired")
-            
-            # Check if already used
+            # FIXED: Check if already used before expiration to prevent race condition
             if reset_token.is_used:
                 raise ValidationError("Password reset token has already been used")
+            
+            # Check expiration
+            if datetime.utcnow() > reset_token.expires_at:
+                raise ValidationError("Password reset token has expired")
             
             # Get user
             user = self.user_repo.get(reset_token.user_id)
