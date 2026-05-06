@@ -1,0 +1,246 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saas-auth-config
+  namespace: saas-auth
+  labels:
+    app: saas-auth-api
+    component: config
+data:
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  ENABLE_METRICS: "true"
+  ENABLE_TRACING: "true"
+  DATABASE_POOL_SIZE: "20"
+  DATABASE_MAX_OVERFLOW: "30"
+  WORKERS: "4"
+  MAX_REQUESTS: "1000"
+  CORS_ORIGINS: "https://app.saas-auth.com,https://admin.saas-auth.com"
+  FRONTEND_URL: "https://app.saas-auth.com"
+  BASE_URL: "https://api.saas-auth.com"
+  REDIS_HOST: "redis.saas-auth.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  DATABASE_HOST: "postgres.saas-auth.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "saas_auth"
+  SMTP_HOST: "smtp.sendgrid.net"
+  SMTP_PORT: "587"
+  SMTP_TLS: "true"
+  SMTP_FROM: "noreply@saas-auth.com"
+  WEBHOOK_TIMEOUT: "30"
+  WEBHOOK_MAX_RETRIES: "5"
+  WEBHOOK_RETRY_DELAY: "5"
+  RATE_LIMIT_REQUESTS: "1000"
+  RATE_LIMIT_WINDOW: "3600"
+  SESSION_TIMEOUT: "3600"
+  TOKEN_EXPIRE_MINUTES: "30"
+  REFRESH_TOKEN_EXPIRE_DAYS: "7"
+  PASSWORD_MIN_LENGTH: "8"
+  PASSWORD_REQUIRE_UPPERCASE: "true"
+  PASSWORD_REQUIRE_LOWERCASE: "true"
+  PASSWORD_REQUIRE_NUMBERS: "true"
+  PASSWORD_REQUIRE_SYMBOLS: "true"
+  MFA_ISSUER: "SaaS Auth"
+  OAUTH_GOOGLE_ENABLED: "true"
+  OAUTH_GITHUB_ENABLED: "true"
+  OAUTH_MICROSOFT_ENABLED: "true"
+  WEBHOOK_BATCH_SIZE: "100"
+  WEBHOOK_WORKER_CONCURRENCY: "10"
+  AUDIT_LOG_RETENTION_DAYS: "365"
+  METRICS_ENABLED: "true"
+  TRACING_ENABLED: "true"
+  HEALTH_CHECK_INTERVAL: "30"
+  GRACEFUL_SHUTDOWN_TIMEOUT: "30"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saas-auth-config-staging
+  namespace: saas-auth-staging
+  labels:
+    app: saas-auth-api
+    component: config
+    environment: staging
+data:
+  ENVIRONMENT: "staging"
+  LOG_LEVEL: "DEBUG"
+  ENABLE_METRICS: "true"
+  ENABLE_TRACING: "true"
+  DATABASE_POOL_SIZE: "5"
+  DATABASE_MAX_OVERFLOW: "10"
+  WORKERS: "2"
+  MAX_REQUESTS: "500"
+  CORS_ORIGINS: "*"
+  FRONTEND_URL: "https://staging.saas-auth.com"
+  BASE_URL: "https://api-staging.saas-auth.com"
+  REDIS_HOST: "redis.saas-auth-staging.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  DATABASE_HOST: "postgres.saas-auth-staging.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "saas_auth_staging"
+  SMTP_HOST: "smtp.sendgrid.net"
+  SMTP_PORT: "587"
+  SMTP_TLS: "true"
+  SMTP_FROM: "noreply@saas-auth.com"
+  WEBHOOK_TIMEOUT: "30"
+  WEBHOOK_MAX_RETRIES: "3"
+  WEBHOOK_RETRY_DELAY: "5"
+  RATE_LIMIT_REQUESTS: "500"
+  RATE_LIMIT_WINDOW: "3600"
+  SESSION_TIMEOUT: "3600"
+  TOKEN_EXPIRE_MINUTES: "60"
+  REFRESH_TOKEN_EXPIRE_DAYS: "30"
+  PASSWORD_MIN_LENGTH: "8"
+  PASSWORD_REQUIRE_UPPERCASE: "true"
+  PASSWORD_REQUIRE_LOWERCASE: "true"
+  PASSWORD_REQUIRE_NUMBERS: "true"
+  PASSWORD_REQUIRE_SYMBOLS: "true"
+  MFA_ISSUER: "SaaS Auth Staging"
+  OAUTH_GOOGLE_ENABLED: "true"
+  OAUTH_GITHUB_ENABLED: "true"
+  OAUTH_MICROSOFT_ENABLED: "true"
+  WEBHOOK_BATCH_SIZE: "50"
+  WEBHOOK_WORKER_CONCURRENCY: "5"
+  AUDIT_LOG_RETENTION_DAYS: "90"
+  METRICS_ENABLED: "true"
+  TRACING_ENABLED: "true"
+  HEALTH_CHECK_INTERVAL: "30"
+  GRACEFUL_SHUTDOWN_TIMEOUT: "30"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: saas-auth
+  labels:
+    app: nginx
+    component: config
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+    
+    events {
+        worker_connections 1024;
+        use epoll;
+        multi_accept on;
+    }
+    
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        # Logging
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for" '
+                        'rt=$request_time uct="$upstream_connect_time" '
+                        'uht="$upstream_header_time" urt="$upstream_response_time"';
+        
+        access_log /var/log/nginx/access.log main;
+        
+        # Performance
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        client_max_body_size 10M;
+        
+        # Gzip compression
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            application/json
+            application/javascript
+            application/xml+rss
+            application/atom+xml
+            image/svg+xml;
+        
+        # Rate limiting
+        limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+        limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
+        
+        # Upstream
+        upstream saas_auth_api {
+            least_conn;
+            server saas-auth-api.saas-auth.svc.cluster.local:8000 max_fails=3 fail_timeout=30s;
+            keepalive 32;
+        }
+        
+        # Server
+        server {
+            listen 80;
+            server_name api.saas-auth.com;
+            
+            # Security headers
+            add_header X-Frame-Options DENY always;
+            add_header X-Content-Type-Options nosniff always;
+            add_header X-XSS-Protection "1; mode=block" always;
+            add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+            add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+            
+            # CORS
+            add_header Access-Control-Allow-Origin "https://app.saas-auth.com" always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization" always;
+            add_header Access-Control-Expose-Headers "Content-Length,Content-Range" always;
+            add_header Access-Control-Max-Age 86400 always;
+            
+            # Handle preflight
+            if ($request_method = 'OPTIONS') {
+                add_header Access-Control-Allow-Origin "https://app.saas-auth.com";
+                add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS";
+                add_header Access-Control-Allow-Headers "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization";
+                add_header Access-Control-Max-Age 86400;
+                add_header Content-Length 0;
+                add_header Content-Type text/plain;
+                return 204;
+            }
+            
+            # Rate limiting for auth endpoints
+            location ~ ^/auth/(login|register|password) {
+                limit_req zone=login burst=5 nodelay;
+                proxy_pass http://saas_auth_api;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_connect_timeout 30s;
+                proxy_send_timeout 30s;
+                proxy_read_timeout 30s;
+            }
+            
+            # General API
+            location / {
+                limit_req zone=api burst=20 nodelay;
+                proxy_pass http://saas_auth_api;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_connect_timeout 30s;
+                proxy_send_timeout 30s;
+                proxy_read_timeout 30s;
+                
+                # Health checks bypass rate limiting
+                location ~ ^/(health|ready|metrics) {
+                    proxy_pass http://saas_auth_api;
+                    access_log off;
+                }
+            }
+        }
+    }

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: saas-auth
+  labels:
+    name: saas-auth
+    environment: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: saas-auth-staging
+  labels:
+    name: saas-auth-staging
+    environment: staging
