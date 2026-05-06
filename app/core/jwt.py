@@ -170,6 +170,7 @@ class TokenManager:
                 raise AuthenticationError(f"Invalid token type. Expected {token_type}")
             
             # Validate expiration (though JWT library does this)
+            # BUG: Using UTC time but not handling timezone properly
             if datetime.utcnow() > datetime.fromtimestamp(payload["exp"]):
                 raise AuthenticationError("Token has expired")
             
