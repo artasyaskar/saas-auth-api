@@ -40,7 +40,7 @@ class OrganizationRole(str, Enum):
 class OrganizationBase(BaseModel):
     """Base organization data."""
     name: str = Field(..., min_length=1, max_length=100)
-    slug: str = Field(..., min_length=3, max_length=50, regex=r"^[a-z0-9-]+$")
+    slug: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-z0-9-]+$")
     description: Optional[str] = Field(None, max_length=500)
     website: Optional[str] = Field(None, max_length=255)
 
@@ -125,7 +125,7 @@ class UpdateMemberRoleRequest(BaseModel):
 
 class DomainVerificationRequest(BaseModel):
     """Domain verification request."""
-    domain: str = Field(..., regex=r"^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$")
+    domain: str = Field(..., pattern=r"^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$")
 
 
 class DomainVerificationResponse(BaseModel):

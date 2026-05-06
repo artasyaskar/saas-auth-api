@@ -41,7 +41,7 @@ class PaginationParams(BaseModel):
     page: int = Field(1, ge=1, description="Page number (1-based)")
     size: int = Field(20, ge=1, le=100, description="Items per page (1-100)")
     sort_by: Optional[str] = Field(None, description="Field to sort by")
-    sort_order: str = Field("asc", regex="^(asc|desc)$", description="Sort order")
+    sort_order: str = Field("asc", pattern="^(asc|desc)$", description="Sort order")
     
     @property
     def offset(self) -> int:
@@ -204,7 +204,7 @@ class ExportParams(BaseModel):
     
     Standardizes export functionality.
     """
-    format: str = Field("json", regex="^(json|csv|xlsx)$", description="Export format")
+    format: str = Field("json", pattern="^(json|csv|xlsx)$", description="Export format")
     fields: Optional[List[str]] = Field(None, description="Fields to include")
     filters: Optional[Dict[str, Any]] = Field(None, description="Export filters")
     date_from: Optional[datetime] = Field(None, description="Start date")

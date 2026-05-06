@@ -173,7 +173,7 @@ class UserPreferences(BaseModel):
     
     Used for managing user settings and preferences.
     """
-    theme: str = Field("light", regex="^(light|dark|auto)$", description="UI theme")
+    theme: str = Field("light", pattern="^(light|dark|auto)$", description="UI theme")
     language: str = Field("en", max_length=10, description="Language code")
     timezone: str = Field("UTC", max_length=50, description="Timezone")
     email_notifications: bool = Field(True, description="Email notification preferences")
@@ -259,7 +259,7 @@ class UserSecuritySettings(BaseModel):
     Used for managing user security preferences.
     """
     two_factor_enabled: bool = Field(False, description="Two-factor authentication status")
-    two_factor_method: Optional[str] = Field(None, regex="^(totp|sms|email|backup)$", description="2FA method")
+    two_factor_method: Optional[str] = Field(None, pattern="^(totp|sms|email|backup)$", description="2FA method")
     email_login_enabled: bool = Field(True, description="Email login enabled")
     social_login_enabled: bool = Field(True, description="Social login enabled")
     api_key_enabled: bool = Field(False, description="API key access enabled")

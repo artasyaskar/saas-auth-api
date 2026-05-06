@@ -57,7 +57,7 @@ class TOTPVerifyResponse(BaseModel):
 
 class SMSSetupRequest(BaseModel):
     """Request to setup SMS 2FA."""
-    phone_number: str = Field(..., regex=r"^\+[1-9]\d{1,14}$")
+    phone_number: str = Field(..., pattern=r"^\+[1-9]\d{1,14}$")
     password: str
 
 

@@ -149,7 +149,7 @@ class TwoFactorSetupRequest(BaseModel):
     
     Used for setting up 2FA methods.
     """
-    method: str = Field(..., regex="^(totp|sms|email|backup)$", description="2FA method")
+    method: str = Field(..., pattern="^(totp|sms|email|backup)$", description="2FA method")
     phone: Optional[str] = Field(None, max_length=20, description="Phone number for SMS")
     backup_codes_count: int = Field(10, ge=5, le=20, description="Number of backup codes to generate")
     
@@ -163,7 +163,7 @@ class TwoFactorVerifyRequest(BaseModel):
     
     Used for verifying 2FA codes.
     """
-    method: str = Field(..., regex="^(totp|sms|email|backup)$", description="2FA method")
+    method: str = Field(..., pattern="^(totp|sms|email|backup)$", description="2FA method")
     code: str = Field(..., min_length=4, max_length=10, description="Verification code")
     backup_code: Optional[str] = Field(None, description="Backup code")
     remember_device: bool = Field(False, description="Remember this device")
@@ -262,7 +262,7 @@ class SecurityEvent(BaseModel):
     Used for logging security-related events.
     """
     event_type: str = Field(..., description="Event type")
-    severity: str = Field(..., regex="^(low|medium|high|critical)$", description="Event severity")
+    severity: str = Field(..., pattern="^(low|medium|high|critical)$", description="Event severity")
     description: str = Field(..., description="Event description")
     ip_address: Optional[str] = Field(None, description="IP address")
     user_agent: Optional[str] = Field(None, description="User agent")
@@ -298,7 +298,7 @@ class DeviceRegistrationRequest(BaseModel):
     Used for registering new devices.
     """
     device_name: str = Field(..., min_length=1, max_length=100, description="Device name")
-    device_type: str = Field(..., regex="^(desktop|mobile|tablet|other)$", description="Device type")
+    device_type: str = Field(..., pattern="^(desktop|mobile|tablet|other)$", description="Device type")
     device_id: Optional[str] = Field(None, description="Device identifier")
     push_token: Optional[str] = Field(None, description="Push notification token")
     
