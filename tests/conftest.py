@@ -1,25 +1,35 @@
 """
-Pytest configuration and fixtures for testing.
+Pytest configuration and fixtures for comprehensive testing.
+
+Provides test database setup, fixtures, and
+common testing utilities for comprehensive test coverage.
 """
+
 import pytest
+import asyncio
+from typing import Generator, Any, Dict, List
+from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
-from app.db.models import Base, User, UserRole
-from app.core.security import get_password_hash
 from app.main import app
 from app.db.session import get_db
+from app.db.base import Base
+from app.core.config import settings
+from app.core.security import SecurityService
+from app.db.models import User, UserRole
 
-# Create test database in memory
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# Test database URL
+TEST_DATABASE_URL = "sqlite:///./test_saas_auth.db"
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
+    TEST_DATABASE_URL,
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
+
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
