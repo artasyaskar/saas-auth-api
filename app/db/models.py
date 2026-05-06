@@ -38,6 +38,8 @@ __all__ = [
     "DataExportRequest",
     "APIKey",
     "SecurityEvent",
+    "LoginAttempt",
+    "RefreshToken",
 ]
 
 Base = declarative_base()
@@ -268,6 +270,35 @@ class UserSession(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     ended_at = Column(DateTime(timezone=True), nullable=True)
     ended_reason = Column(String(50), nullable=True)  # logout, expired, revoked, etc.
+
+
+class LoginAttempt(Base):
+    """Recorded login attempts for rate limiting and security analytics."""
+
+    __tablename__ = "login_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    email = Column(String(255), nullable=False, index=True)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(String(500), nullable=True)
+    success = Column(Boolean, default=False, nullable=False)
+    failure_reason = Column(String(200), nullable=True)
+    attempted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class RefreshToken(Base):
+    """Server-side refresh token records for rotation and revocation."""
+
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token = Column(String(512), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class AuditLog(Base):
