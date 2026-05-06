@@ -14,7 +14,7 @@ import secrets
 import json
 
 from app.db.session import get_db
-from app.db.models import User, UserRole, OAuthAccount, OAuthProvider
+from app.db.models import User, UserRole, OAuthAccount
 from app.core.security import create_access_token, create_refresh_token, generate_secure_token
 from app.services.oauth import (
     OAuth2Service,
@@ -107,7 +107,7 @@ def get_enabled_providers() -> list:
     """Get list of enabled OAuth providers."""
     providers = []
     
-    if settings.GOOGLE_CLIENT_ID:
+    if settings.oauth.google_client_id:
         providers.append(OAuthProviderResponse(
             id="google",
             name="Google",
@@ -115,7 +115,7 @@ def get_enabled_providers() -> list:
             enabled=True
         ))
     
-    if settings.GITHUB_CLIENT_ID:
+    if settings.oauth.github_client_id:
         providers.append(OAuthProviderResponse(
             id="github",
             name="GitHub",
@@ -123,7 +123,7 @@ def get_enabled_providers() -> list:
             enabled=True
         ))
     
-    if settings.MICROSOFT_CLIENT_ID:
+    if settings.oauth.microsoft_client_id:
         providers.append(OAuthProviderResponse(
             id="microsoft",
             name="Microsoft",
@@ -131,7 +131,7 @@ def get_enabled_providers() -> list:
             enabled=True
         ))
     
-    if settings.APPLE_CLIENT_ID:
+    if settings.oauth.apple_client_id:
         providers.append(OAuthProviderResponse(
             id="apple",
             name="Apple",
@@ -139,7 +139,7 @@ def get_enabled_providers() -> list:
             enabled=True
         ))
     
-    if settings.OKTA_CLIENT_ID:
+    if settings.oauth.okta_client_id:
         providers.append(OAuthProviderResponse(
             id="okta",
             name="Okta",
@@ -206,7 +206,7 @@ async def get_oauth_authorization_url(
     if redirect_uri:
         auth_url = config.authorization_url
     else:
-        redirect_uri = f"{settings.FRONTEND_URL}/auth/callback"
+        redirect_uri = f"{settings.frontend_url}/auth/callback"
     
     # Build authorization parameters
     params = {
@@ -295,7 +295,7 @@ async def handle_provider_callback(
     oauth_service = OAuth2Service(db)
     
     # Get redirect URI
-    redirect_uri = f"{settings.FRONTEND_URL}/auth/callback"
+    redirect_uri = f"{settings.frontend_url}/auth/callback"
     
     try:
         # Exchange code for tokens and user info
@@ -321,7 +321,7 @@ async def handle_provider_callback(
         account_list = []
         for account in linked_accounts:
             account_list.append({
-                "provider": account.provider.value,
+                "provider": account.provider,
                 "email": account.email,
                 "linked_at": account.created_at.isoformat() if account.created_at else None
             })
@@ -373,7 +373,7 @@ async def exchange_oauth_token(
         oauth_user, is_new_user = await oauth_service.authenticate_with_provider(
             provider=provider_type,
             code=request.code,
-            redirect_uri=request.redirect_uri or f"{settings.FRONTEND_URL}/auth/callback",
+            redirect_uri=request.redirect_uri or f"{settings.frontend_url}/auth/callback",
             code_verifier=request.code_verifier
         )
         
@@ -423,7 +423,7 @@ async def list_linked_oauth_accounts(
     for account in accounts:
         result.append(OAuthAccountInfo(
             id=account.id,
-            provider=account.provider.value,
+            provider=account.provider,
             provider_user_id=account.provider_user_id,
             email=account.email,
             name=account.name,
@@ -460,7 +460,7 @@ async def link_oauth_account(
         oauth_user, _ = await oauth_service.authenticate_with_provider(
             provider=provider_type,
             code=request.code,
-            redirect_uri=f"{settings.FRONTEND_URL}/auth/callback",
+            redirect_uri=f"{settings.frontend_url}/auth/callback",
             code_verifier=request.code_verifier
         )
         
@@ -473,7 +473,7 @@ async def link_oauth_account(
         
         return OAuthAccountInfo(
             id=account.id,
-            provider=account.provider.value,
+            provider=account.provider,
             provider_user_id=account.provider_user_id,
             email=account.email,
             name=account.name,
@@ -554,7 +554,7 @@ async def refresh_oauth_token(
     # Find account
     account = db.query(OAuthAccount).filter(
         OAuthAccount.user_id == current_user.id,
-        OAuthAccount.provider == provider_type
+        OAuthAccount.provider == provider_type.value,
     ).first()
     
     if not account:

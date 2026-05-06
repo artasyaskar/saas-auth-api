@@ -267,6 +267,20 @@ class OAuthSettings(BaseSettings):
     )
     microsoft_enabled: bool = Field(default=True, validation_alias="MICROSOFT_ENABLED")
 
+    apple_client_id: Optional[str] = Field(
+        default=None, validation_alias="APPLE_CLIENT_ID"
+    )
+    apple_client_secret: Optional[str] = Field(
+        default=None, validation_alias="APPLE_CLIENT_SECRET"
+    )
+    okta_client_id: Optional[str] = Field(
+        default=None, validation_alias="OKTA_CLIENT_ID"
+    )
+    okta_client_secret: Optional[str] = Field(
+        default=None, validation_alias="OKTA_CLIENT_SECRET"
+    )
+    okta_domain: Optional[str] = Field(default=None, validation_alias="OKTA_DOMAIN")
+
 
 class RateLimitSettings(BaseSettings):
     """Rate limiting configuration settings."""
@@ -350,6 +364,15 @@ class Settings(BaseSettings):
     email_verification_expiry_hours: int = 48
 
     app_version: str = Field(default="1.1.0", validation_alias="APP_VERSION")
+
+    frontend_url: str = Field(
+        default="http://localhost:3000",
+        validation_alias=AliasChoices("FRONTEND_URL", "frontend_url"),
+    )
+    base_url: str = Field(
+        default="http://localhost:8000",
+        validation_alias=AliasChoices("BASE_URL", "base_url"),
+    )
 
     cors_origins: List[str] = Field(default_factory=lambda: ["*"])
 

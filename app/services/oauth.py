@@ -28,7 +28,7 @@ import jwt
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, HttpUrl
 
-from app.db.models import User, UserRole, OAuthAccount, OAuthProvider
+from app.db.models import User, UserRole, OAuthAccount
 from app.core.security import generate_secure_token, get_password_hash
 from app.core.config import settings
 
@@ -106,34 +106,6 @@ class OAuth2Service:
     - JWS/JWE support for encrypted tokens
     """
     
-    # Provider configurations
-    PROVIDER_CONFIGS = {
-        OAuthProviderType.GOOGLE: OAuthConfig(
-            provider=OAuthProviderType.GOOGLE,
-            authorization_url="https://accounts.google.com/o/oauth2/v2/auth",
-            token_url="https://oauth2.googleapis.com/token",
-            user_info_url="https://www.googleapis.com/oauth2/v2/userinfo",
-            scopes=["openid", "email", "profile"],
-            pkce=True
-        ),
-        OAuthProviderType.GITHUB: OAuthConfig(
-            provider=OAuthProviderType.GITHUB,
-            authorization_url="https://github.com/login/oauth/authorize",
-            token_url="https://github.com/login/oauth/access_token",
-            user_info_url="https://api.github.com/user",
-            scopes=["user:email"],
-            pkce=False
-        ),
-        OAuthProviderType.MICROSOFT: OAuthConfig(
-            provider=OAuthProviderType.MICROSOFT,
-            authorization_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-            token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
-            user_info_url="https://graph.microsoft.com/v1.0/me",
-            scopes=["openid", "email", "profile"],
-            pkce=True
-        ),
-    }
-    
     def __init__(self, db: Session):
         self.db = db
         self.http_client = httpx.AsyncClient(timeout=30.0)
@@ -160,9 +132,7 @@ class OAuth2Service:
         Returns:
             Tuple of (authorization_url, state)
         """
-        config = self.PROVIDER_CONFIGS.get(provider)
-        if not config:
-            raise ValueError(f"Provider {provider} not configured")
+        config = get_oauth_config(provider)
         
         # Generate state if not provided
         if not state:
@@ -234,9 +204,7 @@ class OAuth2Service:
         if state_data["provider"] != provider.value:
             raise ValueError("State provider mismatch")
         
-        config = self.PROVIDER_CONFIGS.get(provider)
-        if not config:
-            raise ValueError(f"Provider {provider} not configured")
+        config = get_oauth_config(provider)
         
         # Prepare token request
         token_data = {
@@ -284,9 +252,7 @@ class OAuth2Service:
         Returns:
             Normalized user information
         """
-        config = self.PROVIDER_CONFIGS.get(provider)
-        if not config:
-            raise ValueError(f"Provider {provider} not configured")
+        config = get_oauth_config(provider)
         
         # Fetch user info
         headers = {
@@ -496,7 +462,7 @@ class OAuth2Service:
             raise ValueError("No refresh token available")
         
         provider = OAuthProviderType(oauth_account.provider)
-        config = self.PROVIDER_CONFIGS.get(provider)
+        config = get_oauth_config(provider)
         
         if not config:
             raise ValueError(f"Provider {provider} not configured")
@@ -664,61 +630,77 @@ def get_oauth_service(db: Session):
 
 
 def get_oauth_config(provider: OAuthProviderType) -> OAuthConfig:
-    """Get OAuth configuration for a provider."""
+    """Build provider config from application settings (pydantic-settings)."""
+    o = settings.oauth
+    okta_base = (o.okta_domain or "").rstrip("/")
+    placeholder = "https://invalid.local"
+
     configs = {
         OAuthProviderType.GOOGLE: OAuthConfig(
             provider=OAuthProviderType.GOOGLE,
-            client_id=settings.GOOGLE_CLIENT_ID or "",
-            client_secret=settings.GOOGLE_CLIENT_SECRET or "",
+            client_id=o.google_client_id or "",
+            client_secret=o.google_client_secret or "",
             authorization_url="https://accounts.google.com/o/oauth2/v2/auth",
             token_url="https://oauth2.googleapis.com/token",
             user_info_url="https://openidconnect.googleapis.com/v1/userinfo",
             scopes=["openid", "email", "profile"],
-            pkce=True
+            pkce=True,
         ),
         OAuthProviderType.GITHUB: OAuthConfig(
             provider=OAuthProviderType.GITHUB,
-            client_id=settings.GITHUB_CLIENT_ID or "",
-            client_secret=settings.GITHUB_CLIENT_SECRET or "",
+            client_id=o.github_client_id or "",
+            client_secret=o.github_client_secret or "",
             authorization_url="https://github.com/login/oauth/authorize",
             token_url="https://github.com/login/oauth/access_token",
             user_info_url="https://api.github.com/user",
             scopes=["user:email", "read:user"],
-            pkce=False
+            pkce=False,
         ),
         OAuthProviderType.MICROSOFT: OAuthConfig(
             provider=OAuthProviderType.MICROSOFT,
-            client_id=settings.MICROSOFT_CLIENT_ID or "",
-            client_secret=settings.MICROSOFT_CLIENT_SECRET or "",
+            client_id=o.microsoft_client_id or "",
+            client_secret=o.microsoft_client_secret or "",
             authorization_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
             token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
             user_info_url="https://graph.microsoft.com/v1.0/me",
             scopes=["openid", "email", "profile", "User.Read"],
-            pkce=True
+            pkce=True,
         ),
         OAuthProviderType.APPLE: OAuthConfig(
             provider=OAuthProviderType.APPLE,
-            client_id=settings.APPLE_CLIENT_ID or "",
-            client_secret=settings.APPLE_CLIENT_SECRET or "",
+            client_id=o.apple_client_id or "",
+            client_secret=o.apple_client_secret or "",
             authorization_url="https://appleid.apple.com/auth/authorize",
             token_url="https://appleid.apple.com/auth/token",
             user_info_url="https://appleid.apple.com/auth/keys",
             scopes=["name", "email"],
             pkce=True,
-            response_type="code id_token"
+            response_type="code id_token",
         ),
         OAuthProviderType.OKTA: OAuthConfig(
             provider=OAuthProviderType.OKTA,
-            client_id=settings.OKTA_CLIENT_ID or "",
-            client_secret=settings.OKTA_CLIENT_SECRET or "",
-            authorization_url=f"{settings.OKTA_DOMAIN}/oauth2/default/v1/authorize",
-            token_url=f"{settings.OKTA_DOMAIN}/oauth2/default/v1/token",
-            user_info_url=f"{settings.OKTA_DOMAIN}/oauth2/default/v1/userinfo",
+            client_id=o.okta_client_id or "",
+            client_secret=o.okta_client_secret or "",
+            authorization_url=(
+                f"{okta_base}/oauth2/default/v1/authorize"
+                if okta_base
+                else f"{placeholder}/oauth2/default/v1/authorize"
+            ),
+            token_url=(
+                f"{okta_base}/oauth2/default/v1/token"
+                if okta_base
+                else f"{placeholder}/oauth2/default/v1/token"
+            ),
+            user_info_url=(
+                f"{okta_base}/oauth2/default/v1/userinfo"
+                if okta_base
+                else f"{placeholder}/oauth2/default/v1/userinfo"
+            ),
             scopes=["openid", "email", "profile"],
-            pkce=True
+            pkce=True,
         ),
     }
-    
+
     return configs.get(provider, configs[OAuthProviderType.GOOGLE])
 
 
