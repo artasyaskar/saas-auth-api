@@ -1,24 +1,30 @@
 """
-Token blacklist service for handling token revocation.
-Supports both Redis (production) and in-memory (development) storage.
+Token blacklist service for secure token revocation.
+
+Handles token blacklisting with Redis support, cleanup,
+and comprehensive token management with proper security considerations.
 """
-import time
+
+from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
-from typing import Optional, Set
+import json
+import redis
 from sqlalchemy.orm import Session
+
 from app.db.models import TokenBlacklist
 from app.core.config import settings
+from app.core.exceptions import SecurityError, DatabaseError
+from app.repositories.auth import AuthRepository
 
 # Try to import Redis, fallback to in-memory if not available
 try:
-    import redis
     redis_client = redis.from_url(settings.redis_url, decode_responses=True) if settings.redis_url else None
 except Exception:
     redis_client = None
 
 # In-memory fallback storage
-_memory_blacklist: Set[str] = set()
-_memory_expiry: dict = {}
+_memory_blacklist: Dict[str, Dict[str, Any]] = {}
+_memory_expiry: Dict[str, datetime] = {}
 
 
 class TokenBlacklistService:
