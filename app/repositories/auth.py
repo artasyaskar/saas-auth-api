@@ -315,9 +315,8 @@ class AuthRepository(BaseRepository[TokenBlacklist]):
                 session_token=session_token,
                 user_agent=user_agent,
                 ip_address=ip_address,
-                created_at=datetime.utcnow(),
-                last_activity=datetime.utcnow(),
-                is_active=True
+                expires_at=datetime.utcnow() + timedelta(days=30),
+                is_active=True,
             )
             
             self.db.add(session)
@@ -359,7 +358,7 @@ class AuthRepository(BaseRepository[TokenBlacklist]):
         try:
             session = self.get_user_session(session_token)
             if session:
-                session.last_activity = datetime.utcnow()
+                session.last_activity_at = datetime.utcnow()
                 self.db.commit()
                 return True
             return False
@@ -433,7 +432,7 @@ class AuthRepository(BaseRepository[TokenBlacklist]):
             cutoff_date = datetime.utcnow() - timedelta(days=days)
             
             deleted = self.db.query(UserSession).filter(
-                UserSession.last_activity < cutoff_date
+                UserSession.last_activity_at < cutoff_date
             ).delete()
             
             self.db.commit()
