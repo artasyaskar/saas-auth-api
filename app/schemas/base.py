@@ -5,7 +5,7 @@ Provides reusable base models for responses,
 pagination, and common API patterns.
 """
 
-from typing import Generic, TypeVar, List, Optional, Any
+from typing import Generic, TypeVar, List, Optional, Any, Dict
 from pydantic import BaseModel, Field
 from datetime import datetime
 
